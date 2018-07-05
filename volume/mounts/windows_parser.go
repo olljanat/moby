@@ -230,6 +230,12 @@ func (p *windowsParser) validateMountConfigReg(mnt *mount.Mount, destRegex strin
 
 	switch mnt.Type {
 	case mount.TypeBind:
+		// Source is Windows named pipe
+		// See: #34795
+		if mnt.Type == mount.TypeBind && strings.HasPrefix(mnt.Source, "//") {
+			return nil
+		}
+	
 		if len(mnt.Source) == 0 {
 			return &errMountConfig{mnt, errMissingField("Source")}
 		}

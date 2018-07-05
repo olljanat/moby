@@ -35,8 +35,8 @@ func TestControllerValidateMountBind(t *testing.T) {
         // with Windows syntax
         if _, err := newTestControllerWithMount(api.Mount{
                 Type:   api.MountTypeBind,
-                Source: `\\.\pipe\docker_engine`,
-                Target: `\\.\pipe\docker_engine`,
+                Source: `\\.\pipe\foo`,
+                Target: `\\.\pipe\foo`,
         }); err != nil {
                 t.Fatalf("controller should not error at creation: %v", err)
         }
@@ -44,8 +44,8 @@ func TestControllerValidateMountBind(t *testing.T) {
         // with Unix syntax
         if _, err := newTestControllerWithMount(api.Mount{
                 Type:   api.MountTypeBind,
-                Source: `//./pipe/docker_engine`,
-                Target: `//./pipe/docker_engine`,
+                Source: `//./pipe/foo`,
+                Target: `//./pipe/foo`,
         }); err != nil {
                 t.Fatalf("controller should not error at creation: %v", err)
         }
