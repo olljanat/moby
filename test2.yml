@@ -1,9 +1,0 @@
-version: "3"
-services:
-  portainer:
-    image: nginx
-    volumes:
-      - \\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine
-networks:
-  default:
-    driver: overlay
