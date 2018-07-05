@@ -13,7 +13,7 @@ func validateMounts(mounts []api.Mount) error {
 	for _, mount := range mounts {
 		// Target is Windows named pipe
 		// See: #34795
-		if mount.Type == api.MountTypeBind && strings.HasPrefix(mount.Target, "//") {
+		if mount.Type == api.MountTypeBind && (strings.HasPrefix(mount.Target, "//") || strings.HasPrefix(mount.Target, `\\`)) {
 			return nil
 		}
 
