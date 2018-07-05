@@ -4,12 +4,19 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/docker/swarmkit/api"
 )
 
 func validateMounts(mounts []api.Mount) error {
 	for _, mount := range mounts {
+		// Target is Windows named pipe
+		// See: #34795
+		if mount.Type == api.MountTypeBind && (strings.HasPrefix(mount.Target, "//") || strings.HasPrefix(mount.Target, `\\`)) {
+			return nil
+		}
+
 		// Target must always be absolute
 		if !filepath.IsAbs(mount.Target) {
 			return fmt.Errorf("invalid mount target, must be an absolute path: %s", mount.Target)
