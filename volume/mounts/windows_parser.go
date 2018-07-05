@@ -235,7 +235,7 @@ func (p *windowsParser) validateMountConfigReg(mnt *mount.Mount, destRegex strin
 		if mnt.Type == mount.TypeBind && (strings.HasPrefix(mnt.Source, "//") || strings.HasPrefix(mnt.Source, `\\`)) {
 			return nil
 		}
-	
+
 		if len(mnt.Source) == 0 {
 			return &errMountConfig{mnt, errMissingField("Source")}
 		}
