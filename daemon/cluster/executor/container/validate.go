@@ -11,12 +11,10 @@ import (
 
 func validateMounts(mounts []api.Mount) error {
 	for _, mount := range mounts {
-		// Target and source is Windows named pipe
+		// Target is Windows named pipe
 		// See: #34795
-		if strings.HasPrefix(mount.Target, `\\`) || strings.HasPrefix(mount.Target, `//`) {
-			if strings.HasPrefix(mount.Source, `\\`) || strings.HasPrefix(mount.Source, `//`) {
-				return nil
-			}
+		if mount.Type == api.MountTypeBind && strings.HasPrefix(mount.Target, "//") {
+			return nil
 		}
 
 		// Target must always be absolute
