@@ -8,7 +8,6 @@ const (
 )
 
 func TestControllerValidateMountNamedPipe(t *testing.T) {
-	// Windows named pipe
 	// with Windows syntax
 	if _, err := newTestControllerWithMount(api.Mount{
 		Type:   api.MountTypeNamedPipe,
