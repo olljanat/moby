@@ -7,7 +7,7 @@ const (
 	testAbsNonExistent = `c:\some-non-existing-host-path\`
 )
 
-func TestControllerValidateMountVolume(t *testing.T) {
+func TestControllerValidateMountNamedPipe(t *testing.T) {
 	// Windows named pipe
 	// with Windows syntax
 	if _, err := newTestControllerWithMount(api.Mount{
