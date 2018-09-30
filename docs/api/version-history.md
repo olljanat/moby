@@ -33,6 +33,8 @@ keywords: "API, Docker, rcli, REST, documentation"
 * `GET /info` now returns information about `DataPathPort` that is currently used in swarm
 * `GET /swarm` endpoint now returns DataPathPort info
 * `POST /containers/create` now takes `KernelMemoryTCP` field to set hard limit for kernel TCP buffer memory.
+* `POST /service/create` and `POST /services/(id or name)/update` now take the field `MaxReplicas`
+  as part of the service `Placement`, allowing   to specify maximum replicas per node for the service.
 
 ## V1.39 API changes
 
