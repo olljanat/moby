@@ -26,6 +26,8 @@ func (d *driver) Join(nid, eid string, sboxKey string, jinfo driverapi.JoinInfo,
 		return fmt.Errorf("could not find endpoint with id %s", eid)
 	}
 
+	d.peerAdd(nid, eid, ep.addr.IP, ep.addr.Mask, ep.mac, net.ParseIP(n.providerAddress), false)
+
 	buf, err := proto.Marshal(&PeerRecord{
 		EndpointIP:       ep.addr.String(),
 		EndpointMAC:      ep.mac.String(),
@@ -107,6 +109,19 @@ func (d *driver) Leave(nid, eid string) error {
 	if err := validateID(nid, eid); err != nil {
 		return err
 	}
+
+	n := d.network(nid)
+	if n == nil {
+		return fmt.Errorf("could not find network with id %s", nid)
+	}
+
+	ep := n.endpoint(eid)
+
+	if ep == nil {
+		return types.InternalMaskableErrorf("could not find endpoint with id %s", eid)
+	}
+
+	d.peerDelete(nid, eid, ep.addr.IP, ep.addr.Mask, ep.mac, net.ParseIP(n.providerAddress), true)
 
 	return nil
 }
