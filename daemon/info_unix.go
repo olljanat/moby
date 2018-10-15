@@ -170,3 +170,7 @@ func parseInitVersion(v string) (types.Commit, error) {
 	}
 	return version, nil
 }
+
+func (daemon *Daemon) configStoreRootless() bool {
+	return daemon.configStore.Rootless
+}
