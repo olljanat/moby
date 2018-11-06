@@ -3,7 +3,7 @@ package distribution // import "github.com/docker/docker/distribution"
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	//	"fmt"
 	"io"
 	"runtime"
 
@@ -15,7 +15,7 @@ import (
 	"github.com/docker/docker/image"
 	"github.com/docker/docker/layer"
 	"github.com/docker/docker/pkg/progress"
-	"github.com/docker/docker/pkg/system"
+	// "github.com/docker/docker/pkg/system"
 	refstore "github.com/docker/docker/reference"
 	"github.com/docker/docker/registry"
 	"github.com/docker/libtrust"
@@ -157,19 +157,23 @@ func (s *imageConfigStore) PlatformFromConfig(c []byte) (*specs.Platform, error)
 
 	// fail immediately on Windows when downloading a non-Windows image
 	// and vice versa. Exception on Windows if Linux Containers are enabled.
-	if runtime.GOOS == "windows" && unmarshalledConfig.OS == "linux" && !system.LCOWSupported() {
-		return nil, fmt.Errorf("image operating system %q cannot be used on this platform", unmarshalledConfig.OS)
-	} else if runtime.GOOS != "windows" && unmarshalledConfig.OS == "windows" {
-		return nil, fmt.Errorf("image operating system %q cannot be used on this platform", unmarshalledConfig.OS)
-	}
+	/*
+		if runtime.GOOS == "windows" && unmarshalledConfig.OS == "linux" && !system.LCOWSupported() {
+			return nil, fmt.Errorf("image operating system %q cannot be used on this platform", unmarshalledConfig.OS)
+		} else if runtime.GOOS != "windows" && unmarshalledConfig.OS == "windows" {
+			return nil, fmt.Errorf("image operating system %q cannot be used on this platform", unmarshalledConfig.OS)
+		}
+	*/
 
 	os := unmarshalledConfig.OS
 	if os == "" {
 		os = runtime.GOOS
 	}
-	if !system.IsOSSupported(os) {
-		return nil, system.ErrNotSupportedOperatingSystem
-	}
+	/*
+		if !system.IsOSSupported(os) {
+			return nil, system.ErrNotSupportedOperatingSystem
+		}
+	*/
 	return &specs.Platform{OS: os, Architecture: unmarshalledConfig.Architecture, OSVersion: unmarshalledConfig.OSVersion}, nil
 }
 
