@@ -16,9 +16,6 @@ import (
 
 // ContainerStart starts a container.
 func (daemon *Daemon) ContainerStart(name string, hostConfig *containertypes.HostConfig, checkpoint string, checkpointDir string) error {
-	if checkpoint != "" && !daemon.HasExperimental() {
-		return errdefs.InvalidParameter(errors.New("checkpoint is only supported in experimental mode"))
-	}
 
 	container, err := daemon.GetContainer(name)
 	if err != nil {
