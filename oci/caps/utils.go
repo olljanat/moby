@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/docker/docker/errdefs"
 	"github.com/syndtr/gocapability/capability"
 )
 
@@ -67,10 +68,15 @@ func GetAllCapabilities() []string {
 }
 
 // inSlice tests whether a string is contained in a slice of strings or not.
-// Comparison is case insensitive
-func inSlice(slice []string, s string) bool {
+// Case sensitive comparisation is used for Capabilities field
+// Case insensitive comparisation is used for CapAdd and CapDrop
+func inSlice(slice []string, s string, caseSensitive bool) bool {
 	for _, ss := range slice {
-		if strings.ToLower(s) == strings.ToLower(ss) {
+		if !caseSensitive {
+			s = strings.ToUpper(s)
+			ss = strings.ToUpper(ss)
+		}
+		if s == ss {
 			return true
 		}
 	}
@@ -79,40 +85,59 @@ func inSlice(slice []string, s string) bool {
 
 // TweakCapabilities can tweak capabilities by adding or dropping capabilities
 // based on the basics capabilities.
-func TweakCapabilities(basics, adds, drops []string) ([]string, error) {
+func TweakCapabilities(basics, adds, drops []string, capabilities []string, privileged bool) ([]string, error) {
 	var (
 		newCaps []string
 		allCaps = GetAllCapabilities()
 	)
 
-	// FIXME(tonistiigi): docker format is without CAP_ prefix, oci is with prefix
-	// Currently they are mixed in here. We should do conversion in one place.
+	if privileged {
+		return allCaps, nil
+	}
+
+	if (len(adds) > 0 || len(drops) > 0) && capabilities != nil {
+		return nil, errdefs.InvalidParameter(fmt.Errorf("conflicting options: Capabilities and CapAdd / CapDrop"))
+	}
+
+	if capabilities != nil {
+		for _, cap := range capabilities {
+			if !inSlice(allCaps, cap, true) {
+				return nil, errdefs.InvalidParameter(fmt.Errorf("Unknown capability: %q", cap))
+			}
+			newCaps = append(newCaps, cap)
+		}
+		return newCaps, nil
+	}
 
 	// look for invalid cap in the drop list
 	for _, cap := range drops {
-		if strings.ToLower(cap) == "all" {
+		if strings.ToUpper(cap) == "ALL" {
 			continue
 		}
-
-		if !inSlice(allCaps, "CAP_"+cap) {
-			return nil, fmt.Errorf("Unknown capability drop: %q", cap)
+		if !strings.HasPrefix(cap, "CAP_") {
+			cap = "CAP_" + cap
+		}
+		if !inSlice(allCaps, cap, false) {
+			return nil, errdefs.InvalidParameter(fmt.Errorf("Unknown capability to drop: %q", cap))
 		}
 	}
 
 	// handle --cap-add=all
-	if inSlice(adds, "all") {
+	if inSlice(adds, "ALL", false) {
 		basics = allCaps
 	}
 
-	if !inSlice(drops, "all") {
+	if !inSlice(drops, "ALL", false) {
 		for _, cap := range basics {
 			// skip `all` already handled above
-			if strings.ToLower(cap) == "all" {
+			if strings.ToUpper(cap) == "ALL" {
 				continue
 			}
-
 			// if we don't drop `all`, add back all the non-dropped caps
-			if !inSlice(drops, cap[4:]) {
+			if !inSlice(drops, cap[4:], false) {
+				if !strings.HasPrefix(cap, "CAP_") {
+					cap = "CAP_" + cap
+				}
 				newCaps = append(newCaps, strings.ToUpper(cap))
 			}
 		}
@@ -120,18 +145,17 @@ func TweakCapabilities(basics, adds, drops []string) ([]string, error) {
 
 	for _, cap := range adds {
 		// skip `all` already handled above
-		if strings.ToLower(cap) == "all" {
+		if strings.ToUpper(cap) == "ALL" {
 			continue
 		}
-
-		cap = "CAP_" + cap
-
-		if !inSlice(allCaps, cap) {
-			return nil, fmt.Errorf("Unknown capability to add: %q", cap)
+		if !strings.HasPrefix(cap, "CAP_") {
+			cap = "CAP_" + cap
 		}
-
+		if !inSlice(allCaps, cap, false) {
+			return nil, errdefs.InvalidParameter(fmt.Errorf("Unknown capability to add: %q", cap))
+		}
 		// add cap if not already in the list
-		if !inSlice(newCaps, cap) {
+		if !inSlice(newCaps, cap, false) {
 			newCaps = append(newCaps, strings.ToUpper(cap))
 		}
 	}

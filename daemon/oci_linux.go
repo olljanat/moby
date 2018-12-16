@@ -14,6 +14,7 @@ import (
 	"github.com/docker/docker/container"
 	daemonconfig "github.com/docker/docker/daemon/config"
 	"github.com/docker/docker/oci"
+	"github.com/docker/docker/oci/caps"
 	"github.com/docker/docker/pkg/idtools"
 	"github.com/docker/docker/pkg/mount"
 	volumemounts "github.com/docker/docker/volume/mounts"
@@ -698,6 +699,7 @@ func (daemon *Daemon) createSpec(c *container.Container) (retSpec *specs.Spec, e
 	}
 
 	var cgroupsPath string
+	var capabilities []string
 	scopePrefix := "docker"
 	parent := "/docker"
 	useSystemd := UsingSystemd(daemon.configStore)
@@ -762,7 +764,10 @@ func (daemon *Daemon) createSpec(c *container.Container) (retSpec *specs.Spec, e
 	if err := setNamespaces(daemon, &s, c); err != nil {
 		return nil, fmt.Errorf("linux spec namespaces: %v", err)
 	}
-	if err := oci.SetCapabilities(&s, c.HostConfig.CapAdd, c.HostConfig.CapDrop, c.HostConfig.Privileged); err != nil {
+	if capabilities, err = caps.TweakCapabilities(oci.DefaultCapabilities(), c.HostConfig.CapAdd, c.HostConfig.CapDrop, c.HostConfig.Capabilities, c.HostConfig.Privileged); err != nil {
+		return nil, fmt.Errorf("linux spec capabilities: %v", err)
+	}
+	if err := oci.SetCapabilities(&s, capabilities); err != nil {
 		return nil, fmt.Errorf("linux spec capabilities: %v", err)
 	}
 	if err := setSeccomp(daemon, &s, c); err != nil {

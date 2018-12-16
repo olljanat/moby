@@ -13,6 +13,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/versions"
+	"github.com/docker/docker/client"
 	ctr "github.com/docker/docker/integration/internal/container"
 	"github.com/docker/docker/internal/test/request"
 	"github.com/docker/docker/oci"
@@ -222,6 +223,153 @@ func TestCreateWithCustomMaskedPaths(t *testing.T) {
 		poll.WaitOn(t, ctr.IsInState(ctx, client, c.ID, "exited"), poll.WithDelay(100*time.Millisecond))
 
 		checkInspect(t, ctx, name, tc.expected)
+	}
+}
+
+func TestCreateWithCapabilities(t *testing.T) {
+	skip.If(t, testEnv.DaemonInfo.OSType != "linux")
+
+	defer setupTest(t)()
+	ctx := context.Background()
+	clientNew := request.NewAPIClient(t)
+	clientOld := request.NewAPIClient(t, client.WithVersion("1.39"))
+
+	testCases := []struct {
+		capabilities []string
+		expected     []string
+		oldClient    bool
+	}{
+		{
+			capabilities: []string{"CAP_NET_RAW", "CAP_SYS_CHROOT"},
+			expected:     []string{"CAP_NET_RAW", "CAP_SYS_CHROOT"},
+			oldClient:    false,
+		},
+		{
+			capabilities: []string{"CAP_SYS_NICE", "CAP_SYS_NICE"},
+			expected:     []string{"CAP_SYS_NICE", "CAP_SYS_NICE"},
+			oldClient:    false,
+		},
+		{
+			capabilities: []string{"CAP_NET_RAW", "CAP_SYS_CHROOT"},
+			expected:     []string{},
+			oldClient:    true,
+		},
+		{
+			capabilities: []string{},
+			expected:     []string{},
+			oldClient:    false,
+		},
+	}
+
+	checkInspect := func(t *testing.T, ctx context.Context, name string, expected []string) {
+		client := request.NewAPIClient(t)
+		_, b, err := client.ContainerInspectWithRaw(ctx, name, false)
+		assert.NilError(t, err)
+
+		var inspectJSON map[string]interface{}
+		err = json.Unmarshal(b, &inspectJSON)
+		assert.NilError(t, err)
+
+		cfg, _ := inspectJSON["HostConfig"].(map[string]interface{})
+		capabilities, _ := cfg["Capabilities"].([]interface{})
+		mps := []string{}
+		for _, mp := range capabilities {
+			mps = append(mps, mp.(string))
+		}
+		assert.DeepEqual(t, expected, mps)
+	}
+
+	for i, tc := range testCases {
+		name := fmt.Sprintf("create-capabilities-%d", i)
+		config := container.Config{
+			Image: "busybox",
+			Cmd:   []string{"true"},
+		}
+		hc := container.HostConfig{}
+		hc.Capabilities = tc.capabilities
+
+		client := clientNew
+		if tc.oldClient {
+			client = clientOld
+		}
+
+		c, err := client.ContainerCreate(context.Background(),
+			&config,
+			&hc,
+			&network.NetworkingConfig{},
+			name,
+		)
+		assert.NilError(t, err)
+		checkInspect(t, ctx, name, tc.expected)
+
+		err = client.ContainerStart(ctx, c.ID, types.ContainerStartOptions{})
+		assert.NilError(t, err)
+
+		poll.WaitOn(t, ctr.IsInState(ctx, client, c.ID, "exited"), poll.WithDelay(100*time.Millisecond))
+		checkInspect(t, ctx, name, tc.expected)
+	}
+}
+
+func TestCreateFailsWithCapabilities(t *testing.T) {
+	defer setupTest(t)()
+	client := testEnv.APIClient()
+	ctx := context.Background()
+
+	testCases := []struct {
+		doc           string
+		capabilities  []string
+		capAdd        []string
+		capDrop       []string
+		expectedError string
+	}{
+		{
+			doc:           "unknown capability",
+			capabilities:  []string{"NET_RAW"},
+			capAdd:        nil,
+			capDrop:       nil,
+			expectedError: `linux spec capabilities: Unknown capability: "NET_RAW"`,
+		},
+		{
+			doc:           "confict with capadd",
+			capabilities:  []string{"CAP_NET_ADMIN"},
+			capAdd:        []string{"SYS_NICE"},
+			capDrop:       nil,
+			expectedError: `linux spec capabilities: conflicting options: Capabilities and CapAdd / CapDrop`,
+		},
+		{
+			doc:           "confict with capdrop",
+			capabilities:  []string{"CAP_NET_ADMIN"},
+			capAdd:        nil,
+			capDrop:       []string{"NET_RAW"},
+			expectedError: `linux spec capabilities: conflicting options: Capabilities and CapAdd / CapDrop`,
+		},
+	}
+
+	for i, tc := range testCases {
+		tc := tc
+		name := fmt.Sprintf("create-incorrect-capabilities-%d", i)
+		config := container.Config{
+			Image: "busybox",
+			Cmd:   []string{"true"},
+		}
+		hc := container.HostConfig{}
+		hc.Capabilities = tc.capabilities
+		hc.CapAdd = tc.capAdd
+		hc.CapDrop = tc.capDrop
+		t.Run(tc.doc, func(t *testing.T) {
+			t.Parallel()
+			c, err := client.ContainerCreate(context.Background(),
+				&config,
+				&hc,
+				&network.NetworkingConfig{},
+				name,
+			)
+			assert.NilError(t, err)
+
+			err = client.ContainerStart(ctx, c.ID, types.ContainerStartOptions{})
+			assert.Check(t, is.ErrorContains(err, tc.expectedError))
+			client.ContainerRemove(ctx, c.ID, types.ContainerRemoveOptions{Force: true})
+		})
 	}
 }
 
