@@ -45,18 +45,18 @@ func testServiceCreateInit(daemonEnabled bool) func(t *testing.T) {
 		booleanFalse := false
 
 		serviceID := swarm.CreateService(t, d)
-		poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, 1), swarm.ServicePoll)
+		poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, 1, 0), swarm.ServicePoll)
 		i := inspectServiceContainer(t, client, serviceID)
 		// HostConfig.Init == nil means that it delegates to daemon configuration
 		assert.Check(t, i.HostConfig.Init == nil)
 
 		serviceID = swarm.CreateService(t, d, swarm.ServiceWithInit(&booleanTrue))
-		poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, 1), swarm.ServicePoll)
+		poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, 1, 0), swarm.ServicePoll)
 		i = inspectServiceContainer(t, client, serviceID)
 		assert.Check(t, is.Equal(true, *i.HostConfig.Init))
 
 		serviceID = swarm.CreateService(t, d, swarm.ServiceWithInit(&booleanFalse))
-		poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, 1), swarm.ServicePoll)
+		poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, 1, 0), swarm.ServicePoll)
 		i = inspectServiceContainer(t, client, serviceID)
 		assert.Check(t, is.Equal(false, *i.HostConfig.Init))
 	}
@@ -99,7 +99,7 @@ func TestCreateServiceMultipleTimes(t *testing.T) {
 	}
 
 	serviceID := swarm.CreateService(t, d, serviceSpec...)
-	poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, instances), swarm.ServicePoll)
+	poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, instances, 0), swarm.ServicePoll)
 
 	_, _, err := client.ServiceInspectWithRaw(context.Background(), serviceID, types.ServiceInspectOptions{})
 	assert.NilError(t, err)
@@ -111,7 +111,7 @@ func TestCreateServiceMultipleTimes(t *testing.T) {
 	poll.WaitOn(t, noTasks(client), swarm.ServicePoll)
 
 	serviceID2 := swarm.CreateService(t, d, serviceSpec...)
-	poll.WaitOn(t, serviceRunningTasksCount(client, serviceID2, instances), swarm.ServicePoll)
+	poll.WaitOn(t, serviceRunningTasksCount(client, serviceID2, instances, 0), swarm.ServicePoll)
 
 	err = client.ServiceRemove(context.Background(), serviceID2)
 	assert.NilError(t, err)
@@ -153,6 +153,28 @@ func TestCreateServiceConflict(t *testing.T) {
 	assert.Check(t, is.Contains(string(buf), "service "+serviceName+" already exists"))
 }
 
+func TestCreateServiceMaxReplicas(t *testing.T) {
+	defer setupTest(t)()
+	d := swarm.NewSwarm(t, testEnv)
+	defer d.Stop(t)
+	client := d.NewClientT(t)
+	defer client.Close()
+
+	var instances uint64 = 4
+	var maxReplicas uint64 = 2
+
+	serviceSpec := []swarm.ServiceSpecOpt{
+		swarm.ServiceWithReplicas(instances),
+		swarm.ServiceWithMaxReplicas(maxReplicas),
+	}
+
+	serviceID := swarm.CreateService(t, d, serviceSpec...)
+	poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, instances, maxReplicas), swarm.ServicePoll)
+
+	_, _, err := client.ServiceInspectWithRaw(context.Background(), serviceID, types.ServiceInspectOptions{})
+	assert.NilError(t, err)
+}
+
 func TestCreateWithDuplicateNetworkNames(t *testing.T) {
 	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
 	defer setupTest(t)()
@@ -184,7 +206,7 @@ func TestCreateWithDuplicateNetworkNames(t *testing.T) {
 		swarm.ServiceWithNetwork(name),
 	)
 
-	poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, instances), swarm.ServicePoll)
+	poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, instances, 0), swarm.ServicePoll)
 
 	resp, _, err := client.ServiceInspectWithRaw(context.Background(), serviceID, types.ServiceInspectOptions{})
 	assert.NilError(t, err)
@@ -249,7 +271,7 @@ func TestCreateServiceSecretFileMode(t *testing.T) {
 		}),
 	)
 
-	poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, instances), swarm.ServicePoll)
+	poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, instances, 0), swarm.ServicePoll)
 
 	filter := filters.NewArgs()
 	filter.Add("service", serviceID)
@@ -315,7 +337,7 @@ func TestCreateServiceConfigFileMode(t *testing.T) {
 		}),
 	)
 
-	poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, instances))
+	poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, instances, 0))
 
 	filter := filters.NewArgs()
 	filter.Add("service", serviceID)
@@ -396,7 +418,7 @@ func TestCreateServiceSysctls(t *testing.T) {
 		)
 
 		// wait for the service to converge to 1 running task as expected
-		poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, instances))
+		poll.WaitOn(t, serviceRunningTasksCount(client, serviceID, instances, 0))
 
 		// we're going to check 3 things:
 		//
@@ -440,7 +462,7 @@ func TestCreateServiceSysctls(t *testing.T) {
 	}
 }
 
-func serviceRunningTasksCount(client client.ServiceAPIClient, serviceID string, instances uint64) func(log poll.LogT) poll.Result {
+func serviceRunningTasksCount(client client.ServiceAPIClient, serviceID string, instances, maxReplicas uint64) func(log poll.LogT) poll.Result {
 	return func(log poll.LogT) poll.Result {
 		filter := filters.NewArgs()
 		filter.Add("service", serviceID)
@@ -451,12 +473,22 @@ func serviceRunningTasksCount(client client.ServiceAPIClient, serviceID string, 
 		case err != nil:
 			return poll.Error(err)
 		case len(tasks) == int(instances):
+			var running uint64
 			for _, task := range tasks {
-				if task.Status.State != swarmtypes.TaskStateRunning {
-					return poll.Continue("waiting for tasks to enter run state")
+				if task.Status.State == swarmtypes.TaskStateRunning {
+					running++
 				}
 			}
-			return poll.Success()
+			if maxReplicas > 0 {
+				if running == maxReplicas {
+					return poll.Success()
+				}
+			} else {
+				if running == instances {
+					return poll.Success()
+				}
+			}
+			return poll.Continue("waiting for tasks to enter run state")
 		default:
 			return poll.Continue("task count at %d waiting for %d", len(tasks), instances)
 		}
