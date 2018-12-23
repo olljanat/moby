@@ -357,54 +357,6 @@ func (s *DockerSwarmSuite) TestAPISwarmLeaderElection(c *check.C) {
 	c.Assert(leader.NodeID(), checker.Equals, stableleader.NodeID())
 }
 
-func (s *DockerSwarmSuite) TestAPISwarmRaftQuorum(c *check.C) {
-	if runtime.GOARCH == "s390x" {
-		c.Skip("Flaky test disabled on s390x")
-	}
-	if runtime.GOARCH == "ppc64le" {
-		c.Skip("Flaky test disabled on ppc64le")
-	}
-
-	d1 := s.AddDaemon(c, true, true)
-	d2 := s.AddDaemon(c, true, true)
-	d3 := s.AddDaemon(c, true, true)
-
-	d1.CreateService(c, simpleTestService)
-
-	d2.Stop(c)
-
-	// make sure there is a leader
-	waitAndAssert(c, defaultReconciliationTimeout, d1.CheckLeader, checker.IsNil)
-
-	d1.CreateService(c, simpleTestService, func(s *swarm.Service) {
-		s.Spec.Name = "top1"
-	})
-
-	d3.Stop(c)
-
-	var service swarm.Service
-	simpleTestService(&service)
-	service.Spec.Name = "top2"
-	cli, err := d1.NewClient()
-	c.Assert(err, checker.IsNil)
-	defer cli.Close()
-
-	// d1 will eventually step down from leader because there is no longer an active quorum, wait for that to happen
-	waitAndAssert(c, defaultReconciliationTimeout, func(c *check.C) (interface{}, check.CommentInterface) {
-		_, err = cli.ServiceCreate(context.Background(), service.Spec, types.ServiceCreateOptions{})
-		return err.Error(), nil
-	}, checker.Contains, "Make sure more than half of the managers are online.")
-
-	d2.StartNode(c)
-
-	// make sure there is a leader
-	waitAndAssert(c, defaultReconciliationTimeout, d1.CheckLeader, checker.IsNil)
-
-	d1.CreateService(c, simpleTestService, func(s *swarm.Service) {
-		s.Spec.Name = "top3"
-	})
-}
-
 func (s *DockerSwarmSuite) TestAPISwarmLeaveRemovesContainer(c *check.C) {
 	d := s.AddDaemon(c, true, true)
 
