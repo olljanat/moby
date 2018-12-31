@@ -204,7 +204,7 @@ func (d *Daemon) Start(t testingT, args ...string) {
 		ht.Helper()
 	}
 	if err := d.StartWithError(args...); err != nil {
-		t.Fatalf("failed to start daemon with arguments %v : %v", args, err)
+		t.Fatalf("failed to start daemon with arguments %v : %s", args, err.Error())
 	}
 }
 
