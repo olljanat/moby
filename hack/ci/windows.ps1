@@ -6,6 +6,12 @@
 # Jenkins CI scripts for Windows to Windows CI (Powershell Version)
 # By John Howard (@jhowardmsft) January 2016 - bash version; July 2016 Ported to PowerShell
 
+# If at least RS3
+If ([System.Environment]::OSVersion.Version.Build -ge 16299) {
+    & "$PSScriptRoot\windowsDocker.ps1"
+    exit 0
+}
+
 $ErrorActionPreference = 'Stop'
 $StartTime=Get-Date
 

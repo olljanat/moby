@@ -418,6 +418,9 @@ Try {
                 Remove-Item -Force "docker.zip"
             }
         }
+        if (Test-Path -Path c:\binary) {
+            Copy-Item -Path .\bundles\* -Destination c:\binary\
+        }
     }
 
     # Run unit tests

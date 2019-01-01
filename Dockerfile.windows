@@ -150,7 +150,7 @@
 # https://github.com/jhowardmsft/docker-w2wCIScripts/blob/master/runCI/Invoke-DockerCI.ps1.
 #
 # -----------------------------------------------------------------------------------------
-FROM golang:1.11.4-windowsservercore AS compiler
+FROM golang:1.11.4-windowsservercore
 ADD https://raw.githubusercontent.com/jhowardmsft/docker-tdmgcc/master/gcc.zip C:\
 ADD https://raw.githubusercontent.com/jhowardmsft/docker-tdmgcc/master/runtime.zip C:\
 ADD https://raw.githubusercontent.com/jhowardmsft/docker-tdmgcc/master/binutils.zip C:\
@@ -163,31 +163,27 @@ RUN `
   Write-Host INFO: Expanding compiler 3 of 3...; `
   Expand-Archive C:\binutils.zip -DestinationPath C:\gcc -Force;
 
-# The number of build steps below are explicitly minimised to improve performance.
-FROM golang:1.11.4-windowsservercore
-
 # Environment variable notes:
 #  - FROM_DOCKERFILE is used for detection of building within a container.
 ENV FROM_DOCKERFILE=1
 
-RUN `
-  Write-Host INFO: Configuring git core.autocrlf...; `
+RUN Write-Host INFO: Configuring git core.autocrlf...; `
   C:\git\cmd\git config --global core.autocrlf true; `
   `
-  Write-Host 'Updating PATH ...'; `
-  $env:PATH = 'C:\gcc\bin;' + $env:PATH; `
+  Write-Host INFO: Completed;
+
+RUN Write-Host 'INFO: Including busybox ...'; `
+  mkdir C:\tmp; mkdir C:\busybox
+ADD http://frippery.org/files/busybox/busybox.exe /busybox/
+RUN C:\busybox\busybox.exe --list ^|%{$nul = cmd /c mklink C:\busybox\$_.exe busybox.exe}
+
+RUN Write-Host 'Updating PATH ...'; `
+  $env:PATH = 'C:\busybox;C:\gcc\bin;' + $env:PATH; `
   [Environment]::SetEnvironmentVariable('PATH', $env:PATH, [EnvironmentVariableTarget]::Machine); `
   `
   Write-Host INFO: Completed;
 
-# Make PowerShell the default entrypoint
-ENTRYPOINT ["powershell.exe"]
+COPY hack/git.ps1 /
 
 # Set the working directory to the location of the sources
 WORKDIR ${GOPATH}\src\github.com\docker\docker
-
-# Copy compiler
-COPY --from=compiler C:\gcc C:\gcc
-
-# Copy the sources into the container
-COPY . .
