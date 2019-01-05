@@ -24,6 +24,7 @@
 # the case. Therefore, you don't have to disable it anymore.
 #
 
+# Go version must be consistent with 'Dockerfile.windows' and '.circleci/config.yml'
 FROM golang:1.11.4 AS base
 # allow replacing httpredir or deb mirror
 ARG APT_MIRROR=deb.debian.org
@@ -194,6 +195,7 @@ RUN apt-get update && apt-get install -y \
 	btrfs-tools \
 	iptables \
 	jq \
+	kmod \
 	libcap2-bin \
 	libdevmapper-dev \
 	libudev-dev \
@@ -210,6 +212,7 @@ RUN apt-get update && apt-get install -y \
 	python-setuptools \
 	python-websocket \
 	python-wheel \
+	systemd \
 	thin-provisioning-tools \
 	vim \
 	vim-common \
@@ -242,7 +245,7 @@ RUN cd /docker-py \
 COPY --from=rootlesskit /build/ /usr/local/bin/
 COPY --from=slirp4netns /build/ /usr/local/bin/
 
-ENV PATH=/usr/local/cli:$PATH
+ENV PATH=/usr/local/cli:/sbin:$PATH
 ENV DOCKER_BUILDTAGS apparmor seccomp selinux
 # Options for hack/validate/gometalinter
 ENV GOMETALINTER_OPTS="--deadline=2m"

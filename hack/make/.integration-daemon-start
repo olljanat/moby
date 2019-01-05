@@ -3,9 +3,12 @@
 # see test-integration for example usage of this script
 
 base="$ABS_DEST/.."
+export XDG_RUNTIME_DIR=$DEST
 export PATH="$base/binary-daemon:$base/dynbinary-daemon:$PATH"
 
 export TEST_CLIENT_BINARY=docker
+: ${DOCKERD_BINARY:=dockerd}
+export DOCKERD_BINARY
 
 if [ -n "$DOCKER_CLI_PATH" ]; then
 	export TEST_CLIENT_BINARY=/usr/local/cli/$(basename "$DOCKER_CLI_PATH")
@@ -24,13 +27,13 @@ if [ "$(go env GOOS)" = 'windows' ]; then
 fi
 
 if [ -z "$DOCKER_TEST_HOST" ]; then
-	if docker version &> /dev/null; then
+	if $DOCKERD_BINARY version &> /dev/null; then
 		echo >&2 'skipping daemon start, since daemon appears to be already started'
 		return
 	fi
 fi
 
-if ! command -v dockerd &> /dev/null; then
+if ! command -v $DOCKERD_BINARY &> /dev/null; then
 	echo >&2 'error: binary-daemon or dynbinary-daemon must be run before .integration-daemon-start'
 	false
 fi
@@ -78,10 +81,10 @@ if [ -z "$DOCKER_TEST_HOST" ]; then
 	# "pwd" tricks to make sure $DEST is an absolute path, not a relative one
 	export DOCKER_HOST="unix://$(cd "$DEST" && pwd)/docker.sock"
 	(
-		echo "Starting dockerd"
+		echo "Starting $DOCKERD_BINARY"
 		[ -n "$TESTDEBUG" ] && set -x
 		exec \
-			dockerd --debug \
+			$DOCKERD_BINARY --debug \
 			--host "$DOCKER_HOST" \
 			--storage-driver "$DOCKER_GRAPHDRIVER" \
 			--pidfile "$DEST/docker.pid" \

@@ -1,0 +1,33 @@
+version: 2
+jobs:
+  rootless:
+    machine: true
+    environment:
+      DOCKER_HOST: ''
+      DOCKERD_BINARY: 'dockerd-rootless.sh'
+      DOCKER_EXPERIMENTAL: 'y'
+
+    steps:
+      - checkout
+
+      - run:
+          name: Version info
+          command: >
+            cat /etc/lsb-release &&
+            uname -a &&
+            docker version &&
+            docker info
+
+      - run:
+          name: Build docker image and dynbinary
+          command: make binary
+
+      - run:
+          name: Run integration tests
+          command: make test-integration
+
+workflows:
+  version: 2
+  validate:
+    jobs:
+      - rootless
