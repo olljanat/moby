@@ -136,21 +136,21 @@ jobs:
 
 workflows:
   version: 2
-  ci:
+  validate:
     jobs:
       - validate
-      - unit:
-          requires:
-            - validate
-      - test-integration:
-          requires:
-            - validate
-      - test-integration-cli-1:
-          requires:
-            - validate
-      - test-integration-cli-2:
-          requires:
-            - validate
-      - test-integration-cli-3:
-          requires:
-            - validate
+  unit:
+    jobs:
+      - unit
+  integration:
+    jobs:
+      - test-integration
+  cli-1:
+    jobs:
+      - test-integration-cli-1
+  cli-2:
+    jobs:
+      - test-integration-cli-2
+  cli-3:
+    jobs:
+      - test-integration-cli-3
