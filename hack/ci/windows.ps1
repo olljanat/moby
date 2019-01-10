@@ -6,6 +6,8 @@
 # Jenkins CI scripts for Windows to Windows CI (Powershell Version)
 # By John Howard (@jhowardmsft) January 2016 - bash version; July 2016 Ported to PowerShell
 
+exit 1
+
 $ErrorActionPreference = 'Stop'
 $StartTime=Get-Date
 

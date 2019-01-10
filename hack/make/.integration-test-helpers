@@ -11,9 +11,10 @@ fi
 source "$MAKEDIR/.go-autogen"
 
 # Set defaults
-: ${TEST_REPEAT:=1}
+: ${TEST_REPEAT:=5}
 : ${TESTFLAGS:=}
 : ${TESTDEBUG:=}
+export TIMEOUT=30m
 
 integration_api_dirs=${TEST_INTEGRATION_DIR:-"$(
 	find ./integration -type d |
@@ -21,11 +22,11 @@ integration_api_dirs=${TEST_INTEGRATION_DIR:-"$(
 
 run_test_integration() {
 	[[ "$TESTFLAGS" != *-check.f* ]] && run_test_integration_suites
-	run_test_integration_legacy_suites
+	# run_test_integration_legacy_suites
 }
 
 run_test_integration_suites() {
-	local flags="-test.v -test.timeout=${TIMEOUT} $TESTFLAGS"
+	local flags="-test.v -test.count 5 -test.parallel 8 -test.timeout=${TIMEOUT} $TESTFLAGS"
 	for dir in ${integration_api_dirs}; do
 		if ! (
 			cd ${dir}
