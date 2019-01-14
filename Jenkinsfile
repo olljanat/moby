@@ -61,28 +61,7 @@ pipeline {
             withCredentials([string(credentialsId: '52af932f-f13f-429e-8467-e7ff8b965cdb', variable: 'CODECOV_TOKEN')]) {
               withGithubStatus('janky') {
                 sh '''
-                  # todo: include ip_vs in base image
-                  sudo modprobe ip_vs
-
-                  GITCOMMIT=$(git rev-parse --short HEAD)
-                  docker build --rm --force-rm --build-arg APT_MIRROR=cdn-fastly.deb.debian.org -t docker:$GITCOMMIT .
-
-                  docker run --rm -t --privileged \
-                    -v "$WORKSPACE/bundles:/go/src/github.com/docker/docker/bundles" \
-                    -v "$WORKSPACE/.git:/go/src/github.com/docker/docker/.git" \
-                    --name docker-pr$BUILD_NUMBER \
-                    -e DOCKER_GITCOMMIT=${GITCOMMIT} \
-                    -e DOCKER_GRAPHDRIVER=vfs \
-                    -e DOCKER_EXECDRIVER=native \
-                    -e CODECOV_TOKEN \
-                    -e GIT_SHA1=${GIT_COMMIT} \
-                    docker:$GITCOMMIT \
-                    hack/ci/janky
-                '''
-                sh '''
-                  GITCOMMIT=$(git rev-parse --short HEAD)
-                  echo "Building e2e image"
-                  docker build --build-arg DOCKER_GITCOMMIT=$GITCOMMIT -t moby-e2e-test -f Dockerfile.e2e .
+                  hack/ci/run-ci
                 '''
               }
             }
@@ -90,15 +69,7 @@ pipeline {
           post {
             always {
               sh '''
-                echo "Ensuring container killed."
-                docker rm -vf docker-pr$BUILD_NUMBER || true
-
-                echo "Chowning /workspace to jenkins user"
-                docker run --rm -v "$WORKSPACE:/workspace" busybox chown -R "$(id -u):$(id -g)" /workspace
-              '''
-              sh '''
-                echo "Creating bundles.tar.gz"
-                (find bundles -name '*.log' -o -name '*.prof' -o -name integration.test | xargs tar -czf bundles.tar.gz) || true
+                hack/ci/stop-ci
               '''
               archiveArtifacts artifacts: 'bundles.tar.gz'
             }
@@ -117,33 +88,14 @@ pipeline {
           steps {
             withGithubStatus('experimental') {
               sh '''
-                GITCOMMIT=$(git rev-parse --short HEAD)
-                docker build --rm --force-rm --build-arg APT_MIRROR=cdn-fastly.deb.debian.org -t docker:${GITCOMMIT}-exp .
-
-                docker run --rm -t --privileged \
-                    -v "$WORKSPACE/bundles:/go/src/github.com/docker/docker/bundles" \
-                    -e DOCKER_EXPERIMENTAL=y \
-                    --name docker-pr-exp$BUILD_NUMBER \
-                    -e DOCKER_GITCOMMIT=${GITCOMMIT} \
-                    -e DOCKER_GRAPHDRIVER=vfs \
-                    -e DOCKER_EXECDRIVER=native \
-                    docker:${GITCOMMIT}-exp \
-                    hack/ci/experimental
+                hack/ci/run-ci experimental
               '''
             }
           }
           post {
             always {
               sh '''
-                echo "Ensuring container killed."
-                docker rm -vf docker-pr-exp$BUILD_NUMBER || true
-
-                echo "Chowning /workspace to jenkins user"
-                docker run --rm -v "$WORKSPACE:/workspace" busybox chown -R "$(id -u):$(id -g)" /workspace
-              '''
-              sh '''
-                echo "Creating bundles.tar.gz"
-                (find bundles -name '*.log' -o -name '*.prof' -o -name integration.test | xargs tar -czf bundles.tar.gz) || true
+                hack/ci/stop-ci experimental
               '''
               archiveArtifacts artifacts: 'bundles.tar.gz'
             }
@@ -162,36 +114,14 @@ pipeline {
           steps {
             withGithubStatus('z') {
               sh '''
-                GITCOMMIT=$(git rev-parse --short HEAD)
-
-                test -f Dockerfile.s390x && \
-                docker build --rm --force-rm --build-arg APT_MIRROR=cdn-fastly.deb.debian.org -t docker-s390x:$GITCOMMIT -f Dockerfile.s390x . || \
-                docker build --rm --force-rm --build-arg APT_MIRROR=cdn-fastly.deb.debian.org -t docker-s390x:$GITCOMMIT -f Dockerfile .
-
-                docker run --rm -t --privileged \
-                  -v "$WORKSPACE/bundles:/go/src/github.com/docker/docker/bundles" \
-                    --name docker-pr-s390x$BUILD_NUMBER \
-                    -e DOCKER_GRAPHDRIVER=vfs \
-                    -e DOCKER_EXECDRIVER=native \
-                    -e TIMEOUT="300m" \
-                    -e DOCKER_GITCOMMIT=${GITCOMMIT} \
-                    docker-s390x:$GITCOMMIT \
-                    hack/ci/z
+                hack/ci/run-ci s390x
               '''
             }
           }
           post {
             always {
               sh '''
-                echo "Ensuring container killed."
-                docker rm -vf docker-pr-s390x$BUILD_NUMBER || true
-
-                echo "Chowning /workspace to jenkins user"
-                docker run --rm -v "$WORKSPACE:/workspace" s390x/busybox chown -R "$(id -u):$(id -g)" /workspace
-              '''
-              sh '''
-                echo "Creating bundles.tar.gz"
-                find bundles -name '*.log' | xargs tar -czf bundles.tar.gz
+                hack/ci/stop-ci s390x
               '''
               archiveArtifacts artifacts: 'bundles.tar.gz'
             }
@@ -210,36 +140,14 @@ pipeline {
           steps {
             withGithubStatus('powerpc') {
               sh '''
-                GITCOMMIT=$(git rev-parse --short HEAD)
-
-                test -f Dockerfile.ppc64le && \
-                docker build --rm --force-rm --build-arg APT_MIRROR=cdn-fastly.deb.debian.org -t docker-powerpc:$GITCOMMIT -f Dockerfile.ppc64le . || \
-                docker build --rm --force-rm --build-arg APT_MIRROR=cdn-fastly.deb.debian.org -t docker-powerpc:$GITCOMMIT -f Dockerfile .
-
-                docker run --rm -t --privileged \
-                  -v "$WORKSPACE/bundles:/go/src/github.com/docker/docker/bundles" \
-                    --name docker-pr-power$BUILD_NUMBER \
-                    -e DOCKER_GRAPHDRIVER=vfs \
-                    -e DOCKER_EXECDRIVER=native \
-                    -e DOCKER_GITCOMMIT=${GITCOMMIT} \
-                    -e TIMEOUT="180m" \
-                    docker-powerpc:$GITCOMMIT \
-                    hack/ci/powerpc
+                hack/ci/run-ci ppc64le
               '''
             }
           }
           post {
             always {
               sh '''
-                echo "Ensuring container killed."
-                docker rm -vf docker-pr-power$BUILD_NUMBER || true
-
-                echo "Chowning /workspace to jenkins user"
-                docker run --rm -v "$WORKSPACE:/workspace" ppc64le/busybox chown -R "$(id -u):$(id -g)" /workspace
-              '''
-              sh '''
-                echo "Creating bundles.tar.gz"
-                find bundles -name '*.log' | xargs tar -czf bundles.tar.gz
+                hack/ci/stop-ci ppc64le
               '''
               archiveArtifacts artifacts: 'bundles.tar.gz'
             }
@@ -258,18 +166,14 @@ pipeline {
           steps {
             withGithubStatus('vendor') {
               sh '''
-                GITCOMMIT=$(git rev-parse --short HEAD)
-
-                docker build --rm --force-rm --build-arg APT_MIRROR=cdn-fastly.deb.debian.org -t dockerven:$GITCOMMIT .
-
-                docker run --rm -t --privileged \
-                  --name dockerven-pr$BUILD_NUMBER \
-                  -e DOCKER_GRAPHDRIVER=vfs \
-                  -e DOCKER_EXECDRIVER=native \
-                  -v "$WORKSPACE/.git:/go/src/github.com/docker/docker/.git" \
-                  -e DOCKER_GITCOMMIT=${GITCOMMIT} \
-                  -e TIMEOUT=120m dockerven:$GITCOMMIT \
-                  hack/validate/vendor
+                hack/ci/run-ci vendor
+              '''
+            }
+          }
+          post {
+            always {
+              sh '''
+                hack/ci/stop-ci vendor
               '''
             }
           }

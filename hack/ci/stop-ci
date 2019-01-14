@@ -1,0 +1,15 @@
+#!/bin/bash
+
+CONFIG=$1
+if [ -z $CONFIG ]; then
+    CONFIG="janky"
+fi
+
+echo "Ensuring container killed."
+docker rm -vf docker-pr-$CONFIG-$BUILD_NUMBER || true
+
+echo "Chowning /workspace to jenkins user"
+docker run --rm -v "`pwd`:/workspace" busybox chown -R "$(id -u):$(id -g)" /workspace
+
+echo "Creating bundles.tar.gz"
+(find bundles -name '*.log' -o -name '*.prof' -o -name integration.test | xargs tar -czf bundles.tar.gz) || true

@@ -1,0 +1,36 @@
+#!/bin/bash
+
+CONFIG=$1
+if [ -z $CONFIG ]; then
+    CONFIG="janky"
+fi
+SCRIPTFOLDER="ci"
+if [ $CONFIG == "vendor" ]; then
+    SCRIPTFOLDER = "validate"
+fi
+
+if [ $CONFIG == "janky" ]; then
+    sudo modprobe ip_vs
+fi
+
+GITCOMMIT=$(git rev-parse --short HEAD)
+if [ $CONFIG == "s390x" ] || [ $CONFIG == "ppc64le" ]; then
+    test -f Dockerfile.$CONFIG && \
+    docker build --rm --force-rm --build-arg APT_MIRROR=cdn-fastly.deb.debian.org -t docker-$CONFIG:$GITCOMMIT -f Dockerfile.$CONFIG . || \
+    docker build --rm --force-rm --build-arg APT_MIRROR=cdn-fastly.deb.debian.org -t docker-$CONFIG:$GITCOMMIT -f Dockerfile
+else
+    docker build --rm --force-rm --build-arg APT_MIRROR=cdn-fastly.deb.debian.org -t docker-$CONFIG:$GITCOMMIT .
+fi
+
+docker run --rm -t --privileged \
+-v "`pwd`/bundles:/go/src/github.com/docker/docker/bundles" \
+-v "`pwd`/.git:/go/src/github.com/docker/docker/.git" \
+--name docker-pr-$CONFIG-$BUILD_NUMBER \
+-e DOCKER_GITCOMMIT=${GITCOMMIT} \
+-e DOCKER_GRAPHDRIVER=vfs \
+-e DOCKER_EXECDRIVER=native \
+-e CODECOV_TOKEN \
+-e TIMEOUT="300m" \
+-e GIT_SHA1=${GIT_COMMIT} \
+docker-$CONFIG:$GITCOMMIT \
+hack/$SCRIPTFOLDER/$CONFIG
