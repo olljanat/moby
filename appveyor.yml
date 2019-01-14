@@ -1,0 +1,23 @@
+image:
+- Ubuntu1804
+- Visual Studio 2017
+
+for:
+-
+  matrix:
+    only:
+      - image: Ubuntu1804
+
+  build_script:
+  - hack/ci/run-ci
+
+-
+  matrix:
+    only:
+      - image: Visual Studio 2017
+
+  build_script:
+    - ps: |
+        $ErrorActionPreference = 'Stop'
+        .\\hack\\ci\\windows.ps1
+        exit $LastExitCode
