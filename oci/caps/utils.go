@@ -102,25 +102,25 @@ func TweakCapabilities(basics, adds, drops []string, capabilities []string, priv
 	}
 
 	if capabilities != nil {
-		for _, cap := range capabilities {
-			if !inSlice(allCaps, cap, true) {
-				return nil, errdefs.InvalidParameter(fmt.Errorf("Unknown capability: %q", cap))
+		for _, c := range capabilities {
+			if !inSlice(allCaps, c, true) {
+				return nil, errdefs.InvalidParameter(fmt.Errorf("Unknown capability: %q", c))
 			}
-			newCaps = append(newCaps, cap)
+			newCaps = append(newCaps, c)
 		}
 		return newCaps, nil
 	}
 
 	// look for invalid cap in the drop list
-	for _, cap := range drops {
-		if strings.ToUpper(cap) == allCapabilities {
+	for _, c := range drops {
+		if strings.ToUpper(c) == allCapabilities {
 			continue
 		}
-		if !strings.HasPrefix(cap, "CAP_") {
-			cap = "CAP_" + cap
+		if !strings.HasPrefix(c, "CAP_") {
+			c = "CAP_" + c
 		}
-		if !inSlice(allCaps, cap, false) {
-			return nil, errdefs.InvalidParameter(fmt.Errorf("Unknown capability to drop: %q", cap))
+		if !inSlice(allCaps, c, false) {
+			return nil, errdefs.InvalidParameter(fmt.Errorf("Unknown capability to drop: %q", c))
 		}
 	}
 
@@ -130,35 +130,35 @@ func TweakCapabilities(basics, adds, drops []string, capabilities []string, priv
 	}
 
 	if !inSlice(drops, allCapabilities, false) {
-		for _, cap := range basics {
+		for _, c := range basics {
 			// skip `all` already handled above
-			if strings.ToUpper(cap) == allCapabilities {
+			if strings.ToUpper(c) == allCapabilities {
 				continue
 			}
 			// if we don't drop `all`, add back all the non-dropped caps
-			if !inSlice(drops, cap[4:], false) {
-				if !strings.HasPrefix(cap, "CAP_") {
-					cap = "CAP_" + cap
+			if !inSlice(drops, c[4:], false) {
+				if !strings.HasPrefix(c, "CAP_") {
+					c = "CAP_" + c
 				}
-				newCaps = append(newCaps, strings.ToUpper(cap))
+				newCaps = append(newCaps, strings.ToUpper(c))
 			}
 		}
 	}
 
-	for _, cap := range adds {
+	for _, c := range adds {
 		// skip `all` already handled above
-		if strings.ToUpper(cap) == allCapabilities {
+		if strings.ToUpper(c) == allCapabilities {
 			continue
 		}
-		if !strings.HasPrefix(cap, "CAP_") {
-			cap = "CAP_" + cap
+		if !strings.HasPrefix(c, "CAP_") {
+			c = "CAP_" + c
 		}
-		if !inSlice(allCaps, cap, false) {
-			return nil, errdefs.InvalidParameter(fmt.Errorf("Unknown capability to add: %q", cap))
+		if !inSlice(allCaps, c, false) {
+			return nil, errdefs.InvalidParameter(fmt.Errorf("Unknown capability to add: %q", c))
 		}
 		// add cap if not already in the list
-		if !inSlice(newCaps, cap, false) {
-			newCaps = append(newCaps, strings.ToUpper(cap))
+		if !inSlice(newCaps, c, false) {
+			newCaps = append(newCaps, strings.ToUpper(c))
 		}
 	}
 	return newCaps, nil
