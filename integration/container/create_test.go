@@ -327,7 +327,7 @@ func TestCreateFailsWithCapabilities(t *testing.T) {
 			capabilities:  []string{"NET_RAW"},
 			capAdd:        nil,
 			capDrop:       nil,
-			expectedError: `linux spec capabilities: Unknown capability: "NET_RAW"`,
+			expectedError: `linux spec capabilities: unknown capability: "NET_RAW"`,
 		},
 		{
 			doc:           "confict with capadd",

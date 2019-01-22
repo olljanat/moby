@@ -70,12 +70,8 @@ func GetAllCapabilities() []string {
 // inSlice tests whether a string is contained in a slice of strings or not.
 // Case sensitive comparisation is used for Capabilities field
 // Case insensitive comparisation is used for CapAdd and CapDrop
-func inSlice(slice []string, s string, caseSensitive bool) bool {
+func inSlice(slice []string, s string) bool {
 	for _, ss := range slice {
-		if !caseSensitive {
-			s = strings.ToUpper(s)
-			ss = strings.ToUpper(ss)
-		}
 		if s == ss {
 			return true
 		}
@@ -84,6 +80,41 @@ func inSlice(slice []string, s string, caseSensitive bool) bool {
 }
 
 const allCapabilities = "ALL"
+
+// NormalizeLegacyCapabilities normalizes, and validates CapAdd/CapDrop capabilities
+// by upper-casing them, and adding a CAP_ prefix (if not yet present).
+//
+// This function also accepts the "ALL" magic-value, that's used by CapAdd/CapDrop.
+func NormalizeLegacyCapabilities(caps []string) ([]string, error) {
+	var normalized []string
+
+	valids := GetAllCapabilities()
+	for _, c := range caps {
+		c = strings.ToUpper(c)
+		if c == allCapabilities {
+			normalized = append(normalized, c)
+			continue
+		}
+		if !strings.HasPrefix(c, "CAP_") {
+			c = "CAP_" + c
+		}
+		if !inSlice(valids, c) {
+			return nil, errdefs.InvalidParameter(fmt.Errorf("unknown capability: %q", c))
+		}
+	}
+	return normalized, nil
+}
+
+// ValidateCapabilities validates if caps only contains valid capabilities
+func ValidateCapabilities(caps []string) error {
+	valids := GetAllCapabilities()
+	for _, c := range caps {
+		if !inSlice(valids, c) {
+			return errdefs.InvalidParameter(fmt.Errorf("unknown capability: %q", c))
+		}
+	}
+	return nil
+}
 
 // TweakCapabilities can tweak capabilities by adding or dropping capabilities
 // based on the basics capabilities.
@@ -102,63 +133,47 @@ func TweakCapabilities(basics, adds, drops []string, capabilities []string, priv
 	}
 
 	if capabilities != nil {
-		for _, c := range capabilities {
-			if !inSlice(allCaps, c, true) {
-				return nil, errdefs.InvalidParameter(fmt.Errorf("Unknown capability: %q", c))
-			}
-			newCaps = append(newCaps, c)
+		if err := ValidateCapabilities(capabilities); err != nil {
+			return nil, err
 		}
-		return newCaps, nil
+		return capabilities, nil
 	}
 
-	// look for invalid cap in the drop list
-	for _, c := range drops {
-		if strings.ToUpper(c) == allCapabilities {
-			continue
-		}
-		if !strings.HasPrefix(c, "CAP_") {
-			c = "CAP_" + c
-		}
-		if !inSlice(allCaps, c, false) {
-			return nil, errdefs.InvalidParameter(fmt.Errorf("Unknown capability to drop: %q", c))
-		}
+	capDrop, err := NormalizeLegacyCapabilities(drops)
+	if err != nil {
+		return nil, err
+	}
+	capAdd, err := NormalizeLegacyCapabilities(adds)
+	if err != nil {
+		return nil, err
 	}
 
 	// handle --cap-add=all
-	if inSlice(adds, allCapabilities, false) {
+	if inSlice(capAdd, allCapabilities) {
 		basics = allCaps
 	}
 
-	if !inSlice(drops, allCapabilities, false) {
+	if !inSlice(capDrop, allCapabilities) {
 		for _, c := range basics {
 			// skip `all` already handled above
-			if strings.ToUpper(c) == allCapabilities {
+			if c == allCapabilities {
 				continue
 			}
 			// if we don't drop `all`, add back all the non-dropped caps
-			if !inSlice(drops, c[4:], false) {
-				if !strings.HasPrefix(c, "CAP_") {
-					c = "CAP_" + c
-				}
-				newCaps = append(newCaps, strings.ToUpper(c))
+			if !inSlice(capDrop, c) {
+				newCaps = append(newCaps, c)
 			}
 		}
 	}
 
 	for _, c := range adds {
 		// skip `all` already handled above
-		if strings.ToUpper(c) == allCapabilities {
+		if c == allCapabilities {
 			continue
 		}
-		if !strings.HasPrefix(c, "CAP_") {
-			c = "CAP_" + c
-		}
-		if !inSlice(allCaps, c, false) {
-			return nil, errdefs.InvalidParameter(fmt.Errorf("Unknown capability to add: %q", c))
-		}
 		// add cap if not already in the list
-		if !inSlice(newCaps, c, false) {
-			newCaps = append(newCaps, strings.ToUpper(c))
+		if !inSlice(newCaps, c) {
+			newCaps = append(newCaps, c)
 		}
 	}
 	return newCaps, nil
