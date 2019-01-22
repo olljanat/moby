@@ -101,6 +101,7 @@ func NormalizeLegacyCapabilities(caps []string) ([]string, error) {
 		if !inSlice(valids, c) {
 			return nil, errdefs.InvalidParameter(fmt.Errorf("unknown capability: %q", c))
 		}
+		normalized = append(normalized, c)
 	}
 	return normalized, nil
 }
@@ -144,10 +145,15 @@ func TweakCapabilities(basics, adds, drops, capabilities []string, privileged bo
 	}
 
 	var caps []string
+
 	switch {
 	case inSlice(capAdd, allCapabilities):
-		// Add all capabilities
-		caps = GetAllCapabilities()
+		// Add all capabilities except ones on capDrop
+		for _, c := range GetAllCapabilities() {
+			if !inSlice(capDrop, c) {
+				caps = append(caps, c)
+			}
+		}
 	case inSlice(capDrop, allCapabilities):
 		// "Drop" all capabilities; use what's in capAdd instead
 		caps = capAdd
