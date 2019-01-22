@@ -242,12 +242,22 @@ func TestCreateWithCapabilities(t *testing.T) {
 		oldClient     bool
 	}{
 		{
+			doc:        "no capabilities",
+			hostConfig: container.HostConfig{},
+		},
+		{
+			doc: "empty capabilities",
+			hostConfig: container.HostConfig{
+				Capabilities: []string{},
+			},
+			expected: []string{},
+		},
+		{
 			doc: "valid capabilities",
 			hostConfig: container.HostConfig{
 				Capabilities: []string{"CAP_NET_RAW", "CAP_SYS_CHROOT"},
 			},
-			expected:  []string{"CAP_NET_RAW", "CAP_SYS_CHROOT"},
-			oldClient: false,
+			expected: []string{"CAP_NET_RAW", "CAP_SYS_CHROOT"},
 		},
 		{
 			doc: "invalid capabilities",
@@ -261,8 +271,7 @@ func TestCreateWithCapabilities(t *testing.T) {
 			hostConfig: container.HostConfig{
 				Capabilities: []string{"CAP_SYS_NICE", "CAP_SYS_NICE"},
 			},
-			expected:  []string{"CAP_SYS_NICE", "CAP_SYS_NICE"},
-			oldClient: false,
+			expected: []string{"CAP_SYS_NICE", "CAP_SYS_NICE"},
 		},
 		{
 			doc: "capabilities API v1.39",
@@ -273,12 +282,27 @@ func TestCreateWithCapabilities(t *testing.T) {
 			oldClient: true,
 		},
 		{
-			doc: "empty capabilities",
+			doc: "empty capadd",
 			hostConfig: container.HostConfig{
-				Capabilities: []string{},
+				Capabilities: []string{"CAP_NET_ADMIN"},
+				CapAdd:       []string{},
 			},
-			expected:  []string{},
-			oldClient: false,
+			expected: []string{"CAP_NET_ADMIN"},
+		},
+		{
+			doc: "empty capdrop",
+			hostConfig: container.HostConfig{
+				Capabilities: []string{"CAP_NET_ADMIN"},
+				CapDrop:      []string{},
+			},
+			expected: []string{"CAP_NET_ADMIN"},
+		},
+		{
+			doc: "capadd capdrop",
+			hostConfig: container.HostConfig{
+				CapAdd:  []string{"SYS_NICE", "CAP_SYS_NICE"},
+				CapDrop: []string{"SYS_NICE", "CAP_SYS_NICE"},
+			},
 		},
 		{
 			doc: "conflict with capadd",
