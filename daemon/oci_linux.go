@@ -699,7 +699,6 @@ func (daemon *Daemon) createSpec(c *container.Container) (retSpec *specs.Spec, e
 	}
 
 	var cgroupsPath string
-	var capabilities []string
 	scopePrefix := "docker"
 	parent := "/docker"
 	useSystemd := UsingSystemd(daemon.configStore)
@@ -764,7 +763,8 @@ func (daemon *Daemon) createSpec(c *container.Container) (retSpec *specs.Spec, e
 	if err := setNamespaces(daemon, &s, c); err != nil {
 		return nil, fmt.Errorf("linux spec namespaces: %v", err)
 	}
-	if capabilities, err = caps.TweakCapabilities(oci.DefaultCapabilities(), c.HostConfig.CapAdd, c.HostConfig.CapDrop, c.HostConfig.Capabilities, c.HostConfig.Privileged); err != nil {
+	capabilities, err := caps.TweakCapabilities(oci.DefaultCapabilities(), c.HostConfig.CapAdd, c.HostConfig.CapDrop, c.HostConfig.Capabilities, c.HostConfig.Privileged)
+	if err != nil {
 		return nil, fmt.Errorf("linux spec capabilities: %v", err)
 	}
 	if err := oci.SetCapabilities(&s, capabilities); err != nil {
