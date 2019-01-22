@@ -116,23 +116,22 @@ func ValidateCapabilities(caps []string) error {
 	return nil
 }
 
-// TweakCapabilities can tweak capabilities by adding or dropping capabilities
-// based on the basics capabilities.
-func TweakCapabilities(basics, adds, drops []string, capabilities []string, privileged bool) ([]string, error) {
-	var (
-		newCaps []string
-		allCaps = GetAllCapabilities()
-	)
-
-	if privileged {
-		return allCaps, nil
-	}
-
-	if capabilities != nil {
+// TweakCapabilities tweaks capabilities by adding, dropping, or overriding
+// capabilities in the basics capabilities list.
+func TweakCapabilities(basics, adds, drops, capabilities []string, privileged bool) ([]string, error) {
+	switch {
+	case privileged:
+		// Privileged containers get all capabilities
+		return GetAllCapabilities(), nil
+	case capabilities != nil:
+		// Use custom set of capabilities
 		if err := ValidateCapabilities(capabilities); err != nil {
 			return nil, err
 		}
 		return capabilities, nil
+	case len(adds) == 0 && len(drops) == 0:
+		// Nothing to tweak; we're done
+		return basics, nil
 	}
 
 	capDrop, err := NormalizeLegacyCapabilities(drops)
@@ -144,33 +143,23 @@ func TweakCapabilities(basics, adds, drops []string, capabilities []string, priv
 		return nil, err
 	}
 
-	// handle --cap-add=all
-	if inSlice(capAdd, allCapabilities) {
-		basics = allCaps
-	}
-
-	if !inSlice(capDrop, allCapabilities) {
+	var caps []string
+	switch {
+	case inSlice(capAdd, allCapabilities):
+		// Add all capabilities
+		caps = GetAllCapabilities()
+	case inSlice(capDrop, allCapabilities):
+		// "Drop" all capabilities; use what's in capAdd instead
+		caps = capAdd
+	default:
+		// First drop some capabilities
 		for _, c := range basics {
-			// skip `all` already handled above
-			if c == allCapabilities {
-				continue
-			}
-			// if we don't drop `all`, add back all the non-dropped caps
 			if !inSlice(capDrop, c) {
-				newCaps = append(newCaps, c)
+				caps = append(caps, c)
 			}
 		}
+		// Then add the list of capabilities from capAdd
+		caps = append(caps, capAdd...)
 	}
-
-	for _, c := range adds {
-		// skip `all` already handled above
-		if c == allCapabilities {
-			continue
-		}
-		// add cap if not already in the list
-		if !inSlice(newCaps, c) {
-			newCaps = append(newCaps, c)
-		}
-	}
-	return newCaps, nil
+	return caps, nil
 }
