@@ -235,26 +235,31 @@ func TestCreateWithCapabilities(t *testing.T) {
 	clientOld := request.NewAPIClient(t, client.WithVersion("1.39"))
 
 	testCases := []struct {
+		doc          string
 		capabilities []string
 		expected     []string
 		oldClient    bool
 	}{
 		{
+			doc:          "valid capabilities",
 			capabilities: []string{"CAP_NET_RAW", "CAP_SYS_CHROOT"},
 			expected:     []string{"CAP_NET_RAW", "CAP_SYS_CHROOT"},
 			oldClient:    false,
 		},
 		{
+			doc:          "duplicate capabilities",
 			capabilities: []string{"CAP_SYS_NICE", "CAP_SYS_NICE"},
 			expected:     []string{"CAP_SYS_NICE", "CAP_SYS_NICE"},
 			oldClient:    false,
 		},
 		{
+			doc:          "capabilities API v1.39",
 			capabilities: []string{"CAP_NET_RAW", "CAP_SYS_CHROOT"},
 			expected:     nil,
 			oldClient:    true,
 		},
 		{
+			doc:          "empty capabilities",
 			capabilities: []string{},
 			expected:     []string{},
 			oldClient:    false,
@@ -262,29 +267,32 @@ func TestCreateWithCapabilities(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		config := container.Config{
-			Image: "busybox",
-			Cmd:   []string{"true"},
-		}
-		hc := container.HostConfig{}
-		hc.Capabilities = tc.capabilities
+		tc := tc
+		t.Run(tc.doc, func(t *testing.T) {
+			config := container.Config{
+				Image: "busybox",
+				Cmd:   []string{"true"},
+			}
+			hc := container.HostConfig{}
+			hc.Capabilities = tc.capabilities
 
-		client := clientNew
-		if tc.oldClient {
-			client = clientOld
-		}
+			client := clientNew
+			if tc.oldClient {
+				client = clientOld
+			}
 
-		c, err := client.ContainerCreate(context.Background(),
-			&config,
-			&hc,
-			&network.NetworkingConfig{},
-			"",
-		)
-		assert.NilError(t, err)
-		ci, err := client.ContainerInspect(ctx, c.ID)
-		assert.NilError(t, err)
-		assert.Check(t, ci.HostConfig != nil)
-		assert.DeepEqual(t, tc.expected, ci.HostConfig.Capabilities)
+			c, err := client.ContainerCreate(context.Background(),
+				&config,
+				&hc,
+				&network.NetworkingConfig{},
+				"",
+			)
+			assert.NilError(t, err)
+			ci, err := client.ContainerInspect(ctx, c.ID)
+			assert.NilError(t, err)
+			assert.Check(t, ci.HostConfig != nil)
+			assert.DeepEqual(t, tc.expected, ci.HostConfig.Capabilities)
+		})
 	}
 }
 
