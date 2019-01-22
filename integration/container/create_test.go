@@ -235,55 +235,56 @@ func TestCreateWithCapabilities(t *testing.T) {
 	clientOld := request.NewAPIClient(t, client.WithVersion("1.39"))
 
 	testCases := []struct {
-		doc          string
-		capabilities []string
-		expected     []string
-		oldClient    bool
+		doc        string
+		hostConfig container.HostConfig
+		expected   []string
+		oldClient  bool
 	}{
 		{
-			doc:          "valid capabilities",
-			capabilities: []string{"CAP_NET_RAW", "CAP_SYS_CHROOT"},
-			expected:     []string{"CAP_NET_RAW", "CAP_SYS_CHROOT"},
-			oldClient:    false,
+			doc: "valid capabilities",
+			hostConfig: container.HostConfig{
+				Capabilities: []string{"CAP_NET_RAW", "CAP_SYS_CHROOT"},
+			},
+			expected:  []string{"CAP_NET_RAW", "CAP_SYS_CHROOT"},
+			oldClient: false,
 		},
 		{
-			doc:          "duplicate capabilities",
-			capabilities: []string{"CAP_SYS_NICE", "CAP_SYS_NICE"},
-			expected:     []string{"CAP_SYS_NICE", "CAP_SYS_NICE"},
-			oldClient:    false,
+			doc: "duplicate capabilities",
+			hostConfig: container.HostConfig{
+				Capabilities: []string{"CAP_SYS_NICE", "CAP_SYS_NICE"},
+			},
+			expected:  []string{"CAP_SYS_NICE", "CAP_SYS_NICE"},
+			oldClient: false,
 		},
 		{
-			doc:          "capabilities API v1.39",
-			capabilities: []string{"CAP_NET_RAW", "CAP_SYS_CHROOT"},
-			expected:     nil,
-			oldClient:    true,
+			doc: "capabilities API v1.39",
+			hostConfig: container.HostConfig{
+				Capabilities: []string{"CAP_NET_RAW", "CAP_SYS_CHROOT"},
+			},
+			expected:  nil,
+			oldClient: true,
 		},
 		{
-			doc:          "empty capabilities",
-			capabilities: []string{},
-			expected:     []string{},
-			oldClient:    false,
+			doc: "empty capabilities",
+			hostConfig: container.HostConfig{
+				Capabilities: []string{},
+			},
+			expected:  []string{},
+			oldClient: false,
 		},
 	}
 
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.doc, func(t *testing.T) {
-			config := container.Config{
-				Image: "busybox",
-				Cmd:   []string{"true"},
-			}
-			hc := container.HostConfig{}
-			hc.Capabilities = tc.capabilities
-
 			client := clientNew
 			if tc.oldClient {
 				client = clientOld
 			}
 
 			c, err := client.ContainerCreate(context.Background(),
-				&config,
-				&hc,
+				&container.Config{Image: "busybox"},
+				&tc.hostConfig,
 				&network.NetworkingConfig{},
 				"",
 			)
@@ -302,52 +303,43 @@ func TestCreateFailsWithCapabilities(t *testing.T) {
 
 	testCases := []struct {
 		doc           string
-		capabilities  []string
-		capAdd        []string
-		capDrop       []string
+		hostConfig    container.HostConfig
 		expectedError string
 	}{
 		{
-			doc:           "unknown capability",
-			capabilities:  []string{"NET_RAW"},
-			capAdd:        nil,
-			capDrop:       nil,
+			doc: "unknown capability",
+			hostConfig: container.HostConfig{
+				Capabilities: []string{"NET_RAW"},
+			},
 			expectedError: `invalid Capabilities: unknown capability: "NET_RAW"`,
 		},
 		{
-			doc:           "confict with capadd",
-			capabilities:  []string{"CAP_NET_ADMIN"},
-			capAdd:        []string{"SYS_NICE"},
-			capDrop:       nil,
+			doc: "conflict with capadd",
+			hostConfig: container.HostConfig{
+				Capabilities: []string{"CAP_NET_ADMIN"},
+				CapAdd:       []string{"SYS_NICE"},
+			},
 			expectedError: `conflicting options: Capabilities and CapAdd`,
 		},
 		{
-			doc:           "confict with capdrop",
-			capabilities:  []string{"CAP_NET_ADMIN"},
-			capAdd:        nil,
-			capDrop:       []string{"NET_RAW"},
+			doc: "conflict with capdrop",
+			hostConfig: container.HostConfig{
+				Capabilities: []string{"CAP_NET_ADMIN"},
+				CapDrop:      []string{"NET_RAW"},
+			},
 			expectedError: `conflicting options: Capabilities and CapDrop`,
 		},
 	}
 
-	for i, tc := range testCases {
+	for _, tc := range testCases {
 		tc := tc
-		name := fmt.Sprintf("create-incorrect-capabilities-%d", i)
-		config := container.Config{
-			Image: "busybox",
-			Cmd:   []string{"true"},
-		}
-		hc := container.HostConfig{}
-		hc.Capabilities = tc.capabilities
-		hc.CapAdd = tc.capAdd
-		hc.CapDrop = tc.capDrop
 		t.Run(tc.doc, func(t *testing.T) {
 			t.Parallel()
 			_, err := client.ContainerCreate(context.Background(),
-				&config,
-				&hc,
+				&container.Config{Image: "busybox"},
+				&tc.hostConfig,
 				&network.NetworkingConfig{},
-				name,
+				"",
 			)
 			assert.ErrorContains(t, err, tc.expectedError)
 		})
