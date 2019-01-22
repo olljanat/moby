@@ -235,10 +235,11 @@ func TestCreateWithCapabilities(t *testing.T) {
 	clientOld := request.NewAPIClient(t, client.WithVersion("1.39"))
 
 	testCases := []struct {
-		doc        string
-		hostConfig container.HostConfig
-		expected   []string
-		oldClient  bool
+		doc           string
+		hostConfig    container.HostConfig
+		expected      []string
+		expectedError string
+		oldClient     bool
 	}{
 		{
 			doc: "valid capabilities",
@@ -247,6 +248,13 @@ func TestCreateWithCapabilities(t *testing.T) {
 			},
 			expected:  []string{"CAP_NET_RAW", "CAP_SYS_CHROOT"},
 			oldClient: false,
+		},
+		{
+			doc: "invalid capabilities",
+			hostConfig: container.HostConfig{
+				Capabilities: []string{"NET_RAW"},
+			},
+			expectedError: `invalid Capabilities: unknown capability: "NET_RAW"`,
 		},
 		{
 			doc: "duplicate capabilities",
@@ -272,47 +280,6 @@ func TestCreateWithCapabilities(t *testing.T) {
 			expected:  []string{},
 			oldClient: false,
 		},
-	}
-
-	for _, tc := range testCases {
-		tc := tc
-		t.Run(tc.doc, func(t *testing.T) {
-			client := clientNew
-			if tc.oldClient {
-				client = clientOld
-			}
-
-			c, err := client.ContainerCreate(context.Background(),
-				&container.Config{Image: "busybox"},
-				&tc.hostConfig,
-				&network.NetworkingConfig{},
-				"",
-			)
-			assert.NilError(t, err)
-			ci, err := client.ContainerInspect(ctx, c.ID)
-			assert.NilError(t, err)
-			assert.Check(t, ci.HostConfig != nil)
-			assert.DeepEqual(t, tc.expected, ci.HostConfig.Capabilities)
-		})
-	}
-}
-
-func TestCreateFailsWithCapabilities(t *testing.T) {
-	defer setupTest(t)()
-	client := testEnv.APIClient()
-
-	testCases := []struct {
-		doc           string
-		hostConfig    container.HostConfig
-		expectedError string
-	}{
-		{
-			doc: "unknown capability",
-			hostConfig: container.HostConfig{
-				Capabilities: []string{"NET_RAW"},
-			},
-			expectedError: `invalid Capabilities: unknown capability: "NET_RAW"`,
-		},
 		{
 			doc: "conflict with capadd",
 			hostConfig: container.HostConfig{
@@ -335,13 +302,26 @@ func TestCreateFailsWithCapabilities(t *testing.T) {
 		tc := tc
 		t.Run(tc.doc, func(t *testing.T) {
 			t.Parallel()
-			_, err := client.ContainerCreate(context.Background(),
+			client := clientNew
+			if tc.oldClient {
+				client = clientOld
+			}
+
+			c, err := client.ContainerCreate(context.Background(),
 				&container.Config{Image: "busybox"},
 				&tc.hostConfig,
 				&network.NetworkingConfig{},
 				"",
 			)
-			assert.ErrorContains(t, err, tc.expectedError)
+			if tc.expectedError == "" {
+				assert.NilError(t, err)
+				ci, err := client.ContainerInspect(ctx, c.ID)
+				assert.NilError(t, err)
+				assert.Check(t, ci.HostConfig != nil)
+				assert.DeepEqual(t, tc.expected, ci.HostConfig.Capabilities)
+			} else {
+				assert.ErrorContains(t, err, tc.expectedError)
+			}
 		})
 	}
 }
