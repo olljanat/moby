@@ -251,7 +251,7 @@ func TestCreateWithCapabilities(t *testing.T) {
 		},
 		{
 			capabilities: []string{"CAP_NET_RAW", "CAP_SYS_CHROOT"},
-			expected:     []string{},
+			expected:     nil,
 			oldClient:    true,
 		},
 		{
@@ -259,24 +259,6 @@ func TestCreateWithCapabilities(t *testing.T) {
 			expected:     []string{},
 			oldClient:    false,
 		},
-	}
-
-	checkInspect := func(t *testing.T, ctx context.Context, name string, expected []string) {
-		client := request.NewAPIClient(t)
-		_, b, err := client.ContainerInspectWithRaw(ctx, name, false)
-		assert.NilError(t, err)
-
-		var inspectJSON map[string]interface{}
-		err = json.Unmarshal(b, &inspectJSON)
-		assert.NilError(t, err)
-
-		cfg, _ := inspectJSON["HostConfig"].(map[string]interface{})
-		capabilities, _ := cfg["Capabilities"].([]interface{})
-		mps := []string{}
-		for _, mp := range capabilities {
-			mps = append(mps, mp.(string))
-		}
-		assert.DeepEqual(t, expected, mps)
 	}
 
 	for _, tc := range testCases {
@@ -299,7 +281,10 @@ func TestCreateWithCapabilities(t *testing.T) {
 			"",
 		)
 		assert.NilError(t, err)
-		checkInspect(t, ctx, c.ID, tc.expected)
+		ci, err := client.ContainerInspect(ctx, c.ID)
+		assert.NilError(t, err)
+		assert.Check(t, ci.HostConfig != nil)
+		assert.DeepEqual(t, tc.expected, ci.HostConfig.Capabilities)
 	}
 }
 
