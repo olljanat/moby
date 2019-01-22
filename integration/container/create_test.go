@@ -279,8 +279,7 @@ func TestCreateWithCapabilities(t *testing.T) {
 		assert.DeepEqual(t, expected, mps)
 	}
 
-	for i, tc := range testCases {
-		name := fmt.Sprintf("create-capabilities-%d", i)
+	for _, tc := range testCases {
 		config := container.Config{
 			Image: "busybox",
 			Cmd:   []string{"true"},
@@ -297,23 +296,16 @@ func TestCreateWithCapabilities(t *testing.T) {
 			&config,
 			&hc,
 			&network.NetworkingConfig{},
-			name,
+			"",
 		)
 		assert.NilError(t, err)
-		checkInspect(t, ctx, name, tc.expected)
-
-		err = client.ContainerStart(ctx, c.ID, types.ContainerStartOptions{})
-		assert.NilError(t, err)
-
-		poll.WaitOn(t, ctr.IsInState(ctx, client, c.ID, "exited"), poll.WithDelay(100*time.Millisecond))
-		checkInspect(t, ctx, name, tc.expected)
+		checkInspect(t, ctx, c.ID, tc.expected)
 	}
 }
 
 func TestCreateFailsWithCapabilities(t *testing.T) {
 	defer setupTest(t)()
 	client := testEnv.APIClient()
-	ctx := context.Background()
 
 	testCases := []struct {
 		doc           string
@@ -327,21 +319,21 @@ func TestCreateFailsWithCapabilities(t *testing.T) {
 			capabilities:  []string{"NET_RAW"},
 			capAdd:        nil,
 			capDrop:       nil,
-			expectedError: `linux spec capabilities: unknown capability: "NET_RAW"`,
+			expectedError: `invalid Capabilities: unknown capability: "NET_RAW"`,
 		},
 		{
 			doc:           "confict with capadd",
 			capabilities:  []string{"CAP_NET_ADMIN"},
 			capAdd:        []string{"SYS_NICE"},
 			capDrop:       nil,
-			expectedError: `linux spec capabilities: conflicting options: Capabilities and CapAdd / CapDrop`,
+			expectedError: `conflicting options: Capabilities and CapAdd`,
 		},
 		{
 			doc:           "confict with capdrop",
 			capabilities:  []string{"CAP_NET_ADMIN"},
 			capAdd:        nil,
 			capDrop:       []string{"NET_RAW"},
-			expectedError: `linux spec capabilities: conflicting options: Capabilities and CapAdd / CapDrop`,
+			expectedError: `conflicting options: Capabilities and CapDrop`,
 		},
 	}
 
@@ -358,17 +350,13 @@ func TestCreateFailsWithCapabilities(t *testing.T) {
 		hc.CapDrop = tc.capDrop
 		t.Run(tc.doc, func(t *testing.T) {
 			t.Parallel()
-			c, err := client.ContainerCreate(context.Background(),
+			_, err := client.ContainerCreate(context.Background(),
 				&config,
 				&hc,
 				&network.NetworkingConfig{},
 				name,
 			)
-			assert.NilError(t, err)
-
-			err = client.ContainerStart(ctx, c.ID, types.ContainerStartOptions{})
-			assert.Check(t, is.ErrorContains(err, tc.expectedError))
-			client.ContainerRemove(ctx, c.ID, types.ContainerRemoveOptions{Force: true})
+			assert.ErrorContains(t, err, tc.expectedError)
 		})
 	}
 }

@@ -128,10 +128,6 @@ func TweakCapabilities(basics, adds, drops []string, capabilities []string, priv
 		return allCaps, nil
 	}
 
-	if (len(adds) > 0 || len(drops) > 0) && capabilities != nil {
-		return nil, errdefs.InvalidParameter(fmt.Errorf("conflicting options: Capabilities and CapAdd / CapDrop"))
-	}
-
 	if capabilities != nil {
 		if err := ValidateCapabilities(capabilities); err != nil {
 			return nil, err
