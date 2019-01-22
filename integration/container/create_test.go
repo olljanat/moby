@@ -227,7 +227,8 @@ func TestCreateWithCustomMaskedPaths(t *testing.T) {
 }
 
 func TestCreateWithCapabilities(t *testing.T) {
-	skip.If(t, testEnv.DaemonInfo.OSType != "linux")
+	skip.If(t, testEnv.DaemonInfo.OSType == "windows", "FIXME: test should be able to run on LCOW")
+	skip.If(t, versions.LessThan(testEnv.DaemonAPIVersion(), "1.40"), "Capabilities was added in API v1.40")
 
 	defer setupTest(t)()
 	ctx := context.Background()
