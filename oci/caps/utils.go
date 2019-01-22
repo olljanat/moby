@@ -83,6 +83,8 @@ func inSlice(slice []string, s string, caseSensitive bool) bool {
 	return false
 }
 
+const allCapabilities = "ALL"
+
 // TweakCapabilities can tweak capabilities by adding or dropping capabilities
 // based on the basics capabilities.
 func TweakCapabilities(basics, adds, drops []string, capabilities []string, privileged bool) ([]string, error) {
@@ -111,7 +113,7 @@ func TweakCapabilities(basics, adds, drops []string, capabilities []string, priv
 
 	// look for invalid cap in the drop list
 	for _, cap := range drops {
-		if strings.ToUpper(cap) == "ALL" {
+		if strings.ToUpper(cap) == allCapabilities {
 			continue
 		}
 		if !strings.HasPrefix(cap, "CAP_") {
@@ -123,14 +125,14 @@ func TweakCapabilities(basics, adds, drops []string, capabilities []string, priv
 	}
 
 	// handle --cap-add=all
-	if inSlice(adds, "ALL", false) {
+	if inSlice(adds, allCapabilities, false) {
 		basics = allCaps
 	}
 
-	if !inSlice(drops, "ALL", false) {
+	if !inSlice(drops, allCapabilities, false) {
 		for _, cap := range basics {
 			// skip `all` already handled above
-			if strings.ToUpper(cap) == "ALL" {
+			if strings.ToUpper(cap) == allCapabilities {
 				continue
 			}
 			// if we don't drop `all`, add back all the non-dropped caps
@@ -145,7 +147,7 @@ func TweakCapabilities(basics, adds, drops []string, capabilities []string, priv
 
 	for _, cap := range adds {
 		// skip `all` already handled above
-		if strings.ToUpper(cap) == "ALL" {
+		if strings.ToUpper(cap) == allCapabilities {
 			continue
 		}
 		if !strings.HasPrefix(cap, "CAP_") {
