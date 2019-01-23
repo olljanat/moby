@@ -1,0 +1,26 @@
+version: 2
+jobs:
+
+  unit:
+    machine: true
+
+    steps:
+      - checkout
+
+      - run:
+          name: Build docker image
+          command: make build
+
+      - run:
+          name: Run unit tests
+          command: make BIND_DIR=. test-unit
+
+      - run:
+          name: Codecov
+          command: bash <(curl -s https://codecov.io/bash) -f coverage.txt -C "$CIRCLE_SHA1" -Z
+
+workflows:
+  version: 2
+  unit:
+    jobs:
+      - unit
