@@ -1,0 +1,34 @@
+version: 2
+jobs:
+
+  unit:
+    machine: true
+
+    steps:
+      - checkout
+
+      - run:
+          name: Rebase to master
+          command: >
+            git config --global user.email "ci@moby" &&
+            git config --global user.name "CI" &&
+            git fetch origin master &&
+            git rebase --merge origin/master
+
+      - run:
+          name: Build docker image
+          command: make build
+
+      - run:
+          name: Run unit tests
+          command: make BIND_DIR=. test-unit
+
+      - run:
+          name: Codecov
+          command: bash <(curl -s https://codecov.io/bash) -f coverage.txt -C "$CIRCLE_SHA1" -Z -v
+
+workflows:
+  version: 2
+  unit:
+    jobs:
+      - unit
