@@ -28,6 +28,13 @@ var (
 	}
 )
 
+// OrphanLayer holds information about a partially
+// removed layers
+type OrphanLayer struct {
+	Layer    roLayer
+	Metadata Metadata
+}
+
 type fileMetadataStore struct {
 	root string
 }
@@ -51,7 +58,11 @@ func newFSMetadataStore(root string) (*fileMetadataStore, error) {
 
 func (fms *fileMetadataStore) getLayerDirectory(layer ChainID) string {
 	dgst := digest.Digest(layer)
-	return filepath.Join(fms.root, string(dgst.Algorithm()), dgst.Hex())
+	dir := filepath.Join(fms.root, string(dgst.Algorithm()), dgst.Hex())
+	if _, err := os.Stat(dir + "-removing"); !os.IsNotExist(err) {
+		return dir + "-removing"
+	}
+	return dir
 }
 
 func (fms *fileMetadataStore) getLayerFilename(layer ChainID, filename string) string {
@@ -305,6 +316,51 @@ func (fms *fileMetadataStore) GetMountParent(mount string) (ChainID, error) {
 	return ChainID(dgst), nil
 }
 
+func (fms *fileMetadataStore) getOrphan() ([]OrphanLayer, error) {
+	var orphanLayers []OrphanLayer
+	for _, algorithm := range supportedAlgorithms {
+		fileInfos, err := ioutil.ReadDir(filepath.Join(fms.root, string(algorithm)))
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return nil, err
+		}
+
+		for _, fi := range fileInfos {
+			if fi.IsDir() && strings.Contains(fi.Name(), "-removing") {
+				name := strings.Replace(fi.Name(), "-removing", "", 1)
+				dgst := digest.NewDigestFromEncoded(algorithm, name)
+				if err := dgst.Validate(); err != nil {
+					logrus.Debugf("Ignoring invalid digest %s:%s", algorithm, name)
+				} else {
+					chainID := ChainID(dgst)
+					cacheID, err := fms.GetCacheID(chainID)
+					if err != nil {
+						logrus.Errorf("Cannot get cache ID for layer: %v %v", dgst, err)
+						continue
+					}
+					l := &roLayer{
+						chainID: chainID,
+						cacheID: cacheID,
+						size:    1,
+					}
+					metadata := &Metadata{
+						ChainID: chainID,
+						Size:    1,
+					}
+					orphan := &OrphanLayer{
+						Layer:    *l,
+						Metadata: *metadata,
+					}
+					orphanLayers = append(orphanLayers, *orphan)
+				}
+			}
+		}
+	}
+	return orphanLayers, nil
+}
+
 func (fms *fileMetadataStore) List() ([]ChainID, []string, error) {
 	var ids []ChainID
 	for _, algorithm := range supportedAlgorithms {
@@ -346,8 +402,15 @@ func (fms *fileMetadataStore) List() ([]ChainID, []string, error) {
 	return ids, mounts, nil
 }
 
+func (fms *fileMetadataStore) PrepareRemove(layer ChainID) error {
+	if strings.Contains(fms.getLayerDirectory(layer), "-removing") {
+		return nil
+	}
+	return os.Rename(fms.getLayerDirectory(layer), fms.getLayerDirectory(layer+"-removing"))
+}
+
 func (fms *fileMetadataStore) Remove(layer ChainID) error {
-	return os.RemoveAll(fms.getLayerDirectory(layer))
+	return os.RemoveAll(fms.getLayerDirectory(layer + "-removing"))
 }
 
 func (fms *fileMetadataStore) RemoveMount(mount string) error {
