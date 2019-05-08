@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"sync"
 
 	"github.com/docker/distribution"
@@ -407,7 +408,13 @@ func (ls *layerStore) Map() map[ChainID]Layer {
 }
 
 func (ls *layerStore) deleteLayer(layer *roLayer, metadata *Metadata) error {
-	err := ls.driver.Remove(layer.cacheID)
+	// Rename layer digest folder first so we detect orphan layer(s)
+	// if ls.driver.Remove fails
+	err := ls.store.PrepareRemove(layer.chainID)
+	if err != nil {
+		return err
+	}
+	err = ls.driver.Remove(layer.cacheID)
 	if err != nil {
 		return err
 	}
@@ -444,12 +451,14 @@ func (ls *layerStore) releaseLayer(l *roLayer) ([]Metadata, error) {
 		if l.hasReferences() {
 			panic("cannot delete referenced layer")
 		}
+		// Remove layer from layer map first so it is not considered to exist
+		// when if ls.deleteLayer fails.
+		delete(ls.layerMap, l.chainID)
+
 		var metadata Metadata
 		if err := ls.deleteLayer(l, &metadata); err != nil {
 			return nil, err
 		}
-
-		delete(ls.layerMap, l.chainID)
 		removed = append(removed, metadata)
 
 		if l.parent == nil {
@@ -721,6 +730,23 @@ func (ls *layerStore) assembleTarTo(graphID string, metadata io.ReadCloser, size
 }
 
 func (ls *layerStore) Cleanup() error {
+	orphanLayers, err := ls.store.getOrphan()
+	if err != nil {
+		logrus.Errorf("Cannot get orphan layers: %v", err)
+	}
+	logrus.Debugf("found %v orphan layers", len(orphanLayers))
+	for _, orphan := range orphanLayers {
+		logrus.Debugf("removing orphan layer, chain ID: %v , cache ID: %v", orphan.chainID, orphan.cacheID)
+		err = ls.driver.Remove(orphan.cacheID)
+		if err != nil && !os.IsNotExist(err) {
+			logrus.Errorf("Cannot remove orphan layer: %v, %v", orphan.cacheID, err)
+			continue
+		}
+		err = ls.store.Remove(orphan.chainID)
+		if err != nil {
+			logrus.Errorf("Cannot remove orphan layer metadata: %v, %v", orphan.chainID, err)
+		}
+	}
 	return ls.driver.Cleanup()
 }
 
