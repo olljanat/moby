@@ -305,6 +305,47 @@ func (fms *fileMetadataStore) GetMountParent(mount string) (ChainID, error) {
 	return ChainID(dgst), nil
 }
 
+func (fms *fileMetadataStore) getOrphan() ([]roLayer, error) {
+	var orphanLayers []roLayer
+	for _, algorithm := range supportedAlgorithms {
+		fileInfos, err := ioutil.ReadDir(filepath.Join(fms.root, string(algorithm)))
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return nil, err
+		}
+
+		for _, fi := range fileInfos {
+			if fi.IsDir() && strings.Contains(fi.Name(), "-removing") {
+				nameSplit := strings.Split(fi.Name(), "-")
+				dgst := digest.NewDigestFromEncoded(algorithm, nameSplit[0])
+				if err := dgst.Validate(); err != nil {
+					logrus.Debugf("Ignoring invalid digest %s:%s", algorithm, nameSplit[0])
+				} else {
+					chainID := ChainID(dgst)
+					chainFile := filepath.Join(fms.root, string(algorithm), fi.Name(), "cache-id")
+					contentBytes, err := ioutil.ReadFile(chainFile)
+					if err != nil {
+						logrus.Errorf("Cannot get cache ID for layer: %v %v", dgst, err)
+					}
+					cacheID := strings.TrimSpace(string(contentBytes))
+					if cacheID == "" {
+						logrus.Errorf("invalid cache id value")
+					}
+
+					l := &roLayer{
+						chainID: chainID,
+						cacheID: cacheID,
+					}
+					orphanLayers = append(orphanLayers, *l)
+				}
+			}
+		}
+	}
+	return orphanLayers, nil
+}
+
 func (fms *fileMetadataStore) List() ([]ChainID, []string, error) {
 	var ids []ChainID
 	for _, algorithm := range supportedAlgorithms {
@@ -346,8 +387,58 @@ func (fms *fileMetadataStore) List() ([]ChainID, []string, error) {
 	return ids, mounts, nil
 }
 
-func (fms *fileMetadataStore) Remove(layer ChainID) error {
-	return os.RemoveAll(fms.getLayerDirectory(layer))
+func (fms *fileMetadataStore) PrepareRemove(layer ChainID) error {
+	// Generate unique name for orphan layer which is not in used by
+	// earlier copies of same layer
+	i := 0
+	folder := fms.getLayerDirectory(layer)
+	dest := folder
+	for {
+		dgst := digest.Digest(layer)
+		tmpID := fmt.Sprintf("%s-%s-removing", dgst.Hex(), strconv.Itoa(i))
+		dest = filepath.Join(fms.root, string(dgst.Algorithm()), tmpID)
+		_, err := os.Stat(dest)
+		if os.IsNotExist(err) {
+			break
+		}
+		i++
+	}
+	return os.Rename(fms.getLayerDirectory(layer), dest)
+}
+
+// Remove layerdb folder if that is marked for removal
+func (fms *fileMetadataStore) Remove(layer ChainID, cache string) error {
+	dgst := digest.Digest(layer)
+	files, err := ioutil.ReadDir(filepath.Join(fms.root, string(dgst.Algorithm())))
+	if err != nil {
+		return err
+	}
+	for _, f := range files {
+		if !strings.HasSuffix(f.Name(), "-removing") || !strings.HasPrefix(f.Name(), dgst.String()) {
+			continue
+		}
+
+		// Make sure that we only remove layerdb folder which points to
+		// requested cacheID
+		dir := filepath.Join(fms.root, string(dgst.Algorithm()), f.Name())
+		chainFile := filepath.Join(dir, "cache-id")
+		contentBytes, err := ioutil.ReadFile(chainFile)
+		if err != nil {
+			logrus.Errorf("Cannot get cache ID from %v, %v", chainFile, err)
+			continue
+		}
+		cacheID := strings.TrimSpace(string(contentBytes))
+		if cacheID != cache {
+			continue
+		}
+		logrus.Debugf("Removing folder: %s", dir)
+		err = os.RemoveAll(dir)
+		if err != nil && !os.IsNotExist(err) {
+			logrus.Errorf("Cannot remove layer: %v, %v", f.Name(), err)
+			continue
+		}
+	}
+	return nil
 }
 
 func (fms *fileMetadataStore) RemoveMount(mount string) error {
