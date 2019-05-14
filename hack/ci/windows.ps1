@@ -825,18 +825,29 @@ Try {
                                                         docker `
                                                         "`$env`:PATH`='c`:\target;'+`$env:PATH`;  `$env:DOCKER_HOST`='tcp`://'+(ipconfig | select -last 1).Substring(39)+'`:2357'; c:\target\runIntegrationCLI.ps1" | Out-Host } )
             } else  {
-                Write-Host -ForegroundColor Green "INFO: Integration tests being run from the host:"
-                Set-Location "$env:SOURCES_DRIVE`:\$env:SOURCES_SUBDIR\src\github.com\docker\docker\integration-cli"
                 $env:DOCKER_HOST=$DASHH_CUT  
                 $env:PATH="$env:TEMP\binary;$env:PATH;"  # Force to use the test binaries, not the host ones.
-                Write-Host -ForegroundColor Green "INFO: $c"
                 Write-Host -ForegroundColor Green "INFO: DOCKER_HOST at $DASHH_CUT"
+
+                $ErrorActionPreference = "Continue"
+                Write-Host -ForegroundColor Cyan "INFO: Integration API tests being run from the host:"
+                Set-Location "$env:SOURCES_DRIVE`:\$env:SOURCES_SUBDIR\src\github.com\docker\docker"
+                $start=(Get-Date); Invoke-Expression ".\hack\make.ps1 -TestIntegration"; $Duration=New-Timespan -Start $start -End (Get-Date)
+                $ErrorActionPreference = "Stop"
+                if (-not($LastExitCode -eq 0)) {
+                    Throw "ERROR: Integration API tests failed at $(Get-Date). Duration`:$Duration"
+                }
+
+                $ErrorActionPreference = "Continue"
+                Write-Host -ForegroundColor Green "INFO: Integration CLI tests being run from the host:"
+                Write-Host -ForegroundColor Green "INFO: $c"
+                Set-Location "$env:SOURCES_DRIVE`:\$env:SOURCES_SUBDIR\src\github.com\docker\docker\integration-cli"
                 # Explicit to not use measure-command otherwise don't get output as it goes
                 $start=(Get-Date); Invoke-Expression $c; $Duration=New-Timespan -Start $start -End (Get-Date)
             }
             $ErrorActionPreference = "Stop"
             if (-not($LastExitCode -eq 0)) {
-                Throw "ERROR: Integration tests failed at $(Get-Date). Duration`:$Duration"
+                Throw "ERROR: Integration CLI tests failed at $(Get-Date). Duration`:$Duration"
             }
             Write-Host  -ForegroundColor Green "INFO: Integration tests ended at $(Get-Date). Duration`:$Duration"
         } else {

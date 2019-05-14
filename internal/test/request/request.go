@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/docker/docker/client"
@@ -187,6 +188,9 @@ func getTLSConfig() (*tls.Config, error) {
 // DaemonHost return the daemon host string for this test execution
 func DaemonHost() string {
 	daemonURLStr := "unix://" + opts.DefaultUnixSocket
+	if runtime.GOOS == "windows" {
+		daemonURLStr = "npipe://" + opts.DefaultNamedPipe
+	}
 	if daemonHostVar := os.Getenv("DOCKER_HOST"); daemonHostVar != "" {
 		daemonURLStr = daemonHostVar
 	}
