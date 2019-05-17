@@ -3,12 +3,14 @@ package image // import "github.com/docker/docker/integration/image"
 import (
 	"context"
 	"os"
+	"io/ioutil"
 	"syscall"
 	"testing"
 	"time"
 	"unsafe"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/daemon/images"
 	"github.com/docker/docker/integration/internal/container"
 	"gotest.tools/assert"
 	is "gotest.tools/assert/cmp"
@@ -70,27 +72,28 @@ func TestRemoveImageGarbageCollector(t *testing.T) {
 	ctx := context.Background()
 	client := testEnv.APIClient()
 
-	img := "test-container-garbage-collector"
+	img1 := "garbage-collector-phase1"
+	img2 := "garbage-collector-phase2"
 
 	// Create a container from busybox, and commit a small change so we have a new image
 	cID1 := container.Create(t, ctx, client, container.WithCmd(""))
 	commitResp, err := client.ContainerCommit(ctx, cID1, types.ContainerCommitOptions{
-		Changes:   []string{`echo echo Migrating database > /migrate.sh`},
-		Reference: img,
+		Changes:   []string{`RUN echo echo Migrating database > /migrate.sh`},
+		Reference: img1,
 	})
 	assert.NilError(t, err)
 
 	// Create a container from created image, and commit a small change with same reference name
-	cID2 := container.Create(t, ctx, client, container.WithImage(img), container.WithCmd(""))
+	cID2 := container.Create(t, ctx, client, container.WithImage(img1), container.WithCmd(""))
 	_, err = client.ContainerCommit(ctx, cID2, types.ContainerCommitOptions{
-		Changes:   []string{`echo sh /migrate.sh > /start.sh`},
-		Reference: img,
+		Changes:   []string{`RUN echo sh /migrate.sh > /start.sh`},
+		Reference: img2,
 	})
 	assert.NilError(t, err)
 
 	// Run a container from created image and verify that database migration script
 	// will run before application starts 
-	cID := container.Run(t, ctx, client, container.WithImage(img), container.WithCmd(""))
+	cID := container.Run(t, ctx, client, container.WithImage(img2), container.WithCmd(""))
 	poll.WaitOn(t, container.IsInState(ctx, client, cID, "running"), poll.WithDelay(100*time.Millisecond))
 	res, err := container.Exec(ctx, client, cID,
 		[]string{"sh", "/start.sh"})
@@ -105,24 +108,24 @@ func TestRemoveImageGarbageCollector(t *testing.T) {
 	argp := uintptr(unsafe.Pointer(&attr))
 	_, _, _ = syscall.Syscall(syscall.SYS_IOCTL, file.Fd(), fsflags, argp)
 
-	// try to remove the image, it should generate error
-	// but marking layer back to mutable before check errors
-	_, err = client.ImageRemove(ctx, img, types.ImageRemoveOptions{})
+	// Try to remove the image, it should generate error
+	// but marking layer back to mutable before checking errors (so we don't break CI server)
+	_, err = client.ImageRemove(ctx, img2, types.ImageRemoveOptions{})
 	attr = 0x00000000
 	argp = uintptr(unsafe.Pointer(&attr))
 	_, _, _ = syscall.Syscall(syscall.SYS_IOCTL, file.Fd(), fsflags, argp)
 	assert.ErrorContains(t, err, "operation not permitted")
 
+	// Run a container again and check that it fails
+	cID = container.Run(t, ctx, client, container.WithImage(img2), container.WithCmd(""))
+	poll.WaitOn(t, container.IsInState(ctx, client, cID, "running"), poll.WithDelay(100*time.Millisecond))
 	
-
-	/*
-	// check if the first image is still there
-	resp, _, err = client.ImageInspectWithRaw(ctx, commitResp1.ID)
+	// run cleanup() and make sure that layer was removed from disk
+	i := images.NewImageService(images.ImageServiceConfig{})
+	i.Cleanup()
+	_, err = ioutil.ReadDir(data["UpperDir"])
+	if os.IsNotExist(err) {
+		err = nil
+	}
 	assert.NilError(t, err)
-	assert.Check(t, is.Equal(resp.ID, commitResp1.ID))
-
-	// check if the second image has been deleted
-	_, _, err = client.ImageInspectWithRaw(ctx, commitResp2.ID)
-	assert.Check(t, is.ErrorContains(err, "No such image:"))
-	*/
 }
