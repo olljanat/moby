@@ -25,10 +25,9 @@ func TestRemoveImageGarbageCollector(t *testing.T) {
 
 	img := "garbage-collector-phase"
 
-	// Create a container from created image, and commit a small change with same reference name
+	// Build a container image with multiple layers
 	content := `FROM busybox
-	RUN echo echo Migrating database > /migrate.sh
-	RUN echo sh /migrate.sh > /start.sh`
+	RUN echo echo Starting application > /start.sh`
 	dockerfile := []byte(content)
 
 	buff := bytes.NewBuffer(nil)
@@ -46,16 +45,15 @@ func TestRemoveImageGarbageCollector(t *testing.T) {
 	image, _, err := client.ImageInspectWithRaw(ctx, img)
 	assert.NilError(t, err)
 
-	// Run a container from created image and verify that database migration script
-	// will run before application starts 
+	// Run a container from created image and verify that it starts correctly
 	cID := container.Run(t, ctx, client, container.WithImage(img), container.WithCmd(""))
 	poll.WaitOn(t, container.IsInState(ctx, client, cID, "running"), poll.WithDelay(100*time.Millisecond))
 	res, err := container.Exec(ctx, client, cID,
 		[]string{"sh", "/start.sh"})
 	assert.NilError(t, err)
-	assert.Assert(t, res.Stdout(), "Migrating database")
+	assert.Assert(t, res.Stdout(), "Starting application")
 
-	// Mark layer created on first phase to immutable
+	// Mark latest image layer to immutable
 	data := image.GraphDriver.Data
 	file, _ := os.Open(data["UpperDir"])
 	attr := 0x00000010

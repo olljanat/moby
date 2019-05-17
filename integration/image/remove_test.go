@@ -2,19 +2,12 @@ package image // import "github.com/docker/docker/integration/image"
 
 import (
 	"context"
-	"os"
-	"io/ioutil"
-	"syscall"
 	"testing"
-	"time"
-	"unsafe"
 
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/daemon/images"
 	"github.com/docker/docker/integration/internal/container"
 	"gotest.tools/assert"
 	is "gotest.tools/assert/cmp"
-	"gotest.tools/poll"
 	"gotest.tools/skip"
 )
 
