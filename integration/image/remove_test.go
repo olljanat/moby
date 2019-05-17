@@ -67,7 +67,6 @@ func TestRemoveImageOrphaning(t *testing.T) {
 }
 
 func TestRemoveImageGarbageCollector(t *testing.T) {
-	skip.If(t, testEnv.DaemonInfo.OSType == "windows", "FIXME")
 	defer setupTest(t)()
 	ctx := context.Background()
 	client := testEnv.APIClient()
