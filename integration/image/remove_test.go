@@ -72,34 +72,33 @@ func TestRemoveImageGarbageCollector(t *testing.T) {
 	ctx := context.Background()
 	client := testEnv.APIClient()
 
-	img1 := "garbage-collector-phase1"
-	img2 := "garbage-collector-phase2"
+	img := "garbage-collector-phase"
 
 	// Create a container from busybox, and commit a small change so we have a new image
 	cID1 := container.Create(t, ctx, client, container.WithCmd(""))
 	commitResp, err := client.ContainerCommit(ctx, cID1, types.ContainerCommitOptions{
 		Changes:   []string{`RUN echo echo Migrating database > /migrate.sh`},
-		Reference: img1,
+		Reference: img,
 	})
 	assert.NilError(t, err)
 
 	// Create a container from created image, and commit a small change with same reference name
-	cID2 := container.Create(t, ctx, client, container.WithImage(img1), container.WithCmd(""))
+	cID2 := container.Create(t, ctx, client, container.WithImage(img), container.WithCmd(""))
 	_, err = client.ContainerCommit(ctx, cID2, types.ContainerCommitOptions{
 		Changes:   []string{`RUN echo sh /migrate.sh > /start.sh`},
-		Reference: img2,
+		Reference: img,
 	})
 	assert.NilError(t, err)
 
 	// Run a container from created image and verify that database migration script
 	// will run before application starts 
-	cID := container.Run(t, ctx, client, container.WithImage(img2), container.WithCmd(""))
+	cID := container.Run(t, ctx, client, container.WithImage(img), container.WithCmd(""))
 	poll.WaitOn(t, container.IsInState(ctx, client, cID, "running"), poll.WithDelay(100*time.Millisecond))
 	res, err := container.Exec(ctx, client, cID,
 		[]string{"sh", "/start.sh"})
 	assert.Assert(t, res.Stdout(), "Migrating database")
 
-	// Mark first layer immutable
+	// Mark layer created on first phase to immutable
 	resp, _, err := client.ImageInspectWithRaw(ctx, commitResp.ID)
 	data := resp.GraphDriver.Data
 	file, _ := os.Open(data["UpperDir"])
@@ -110,17 +109,20 @@ func TestRemoveImageGarbageCollector(t *testing.T) {
 
 	// Try to remove the image, it should generate error
 	// but marking layer back to mutable before checking errors (so we don't break CI server)
-	_, err = client.ImageRemove(ctx, img2, types.ImageRemoveOptions{})
+	_, err = client.ImageRemove(ctx, img, types.ImageRemoveOptions{})
 	attr = 0x00000000
 	argp = uintptr(unsafe.Pointer(&attr))
 	_, _, _ = syscall.Syscall(syscall.SYS_IOCTL, file.Fd(), fsflags, argp)
 	assert.ErrorContains(t, err, "operation not permitted")
 
-	// Run a container again and check that it fails
-	cID = container.Run(t, ctx, client, container.WithImage(img2), container.WithCmd(""))
-	poll.WaitOn(t, container.IsInState(ctx, client, cID, "running"), poll.WithDelay(100*time.Millisecond))
-	
-	// run cleanup() and make sure that layer was removed from disk
+	// Verify that layer remaining on disk
+	_, err = ioutil.ReadDir(data["UpperDir"])
+	if !os.IsNotExist(err) {
+		err = nil
+	}
+	assert.NilError(t, err)
+
+	// Run imageService.Cleanup() and make sure that layer was removed from disk
 	i := images.NewImageService(images.ImageServiceConfig{})
 	i.Cleanup()
 	_, err = ioutil.ReadDir(data["UpperDir"])
