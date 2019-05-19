@@ -1,12 +1,7 @@
 package daemon
 
 import (
-	"path/filepath"
-	"runtime"
-
-	"github.com/docker/docker/daemon/images"
 	"github.com/docker/docker/internal/test/environment"
-	"github.com/docker/docker/layer"
 )
 
 // WithDefaultCgroupNamespaceMode sets the default cgroup namespace mode for the daemon
