@@ -837,6 +837,9 @@ Try {
                 Write-Host -ForegroundColor Green "INFO: DOCKER_HOST at $DASHH_CUT"
 
                 $ErrorActionPreference = "Stop"
+                Write-Host -ForegroundColor Cyan "INFO: Building integration API tests inside a container"
+                docker run -e DOCKER_GITCOMMIT=$COMMITHASH$CommitUnsupported -v $env:SOURCES_DRIVE`:\$env:SOURCES_SUBDIR\src\github.com\docker\docker:c`:\go\src\github.com\docker\docker docker hack\make.ps1 -BuildIntegration
+
                 Write-Host -ForegroundColor Cyan "INFO: Integration API tests being run from the host:"
                 Set-Location "$env:SOURCES_DRIVE`:\$env:SOURCES_SUBDIR\src\github.com\docker\docker"
                 $start=(Get-Date); Invoke-Expression ".\hack\make.ps1 -TestIntegration"; $Duration=New-Timespan -Start $start -End (Get-Date)

@@ -60,6 +60,9 @@
 .PARAMETER TestUnit
      Runs unit tests.
 
+.PARAMETER BuildIntegration
+     Build integration tests.
+
 .PARAMETER TestIntegration
      Runs integration tests.
 
@@ -87,6 +90,7 @@ param(
     [Parameter(Mandatory=$False)][switch]$PkgImports,
     [Parameter(Mandatory=$False)][switch]$GoFormat,
     [Parameter(Mandatory=$False)][switch]$TestUnit,
+    [Parameter(Mandatory=$False)][switch]$BuildIntegration,
     [Parameter(Mandatory=$False)][switch]$TestIntegration,
     [Parameter(Mandatory=$False)][switch]$All
 )
@@ -324,9 +328,8 @@ Function Run-UnitTests() {
     if ($LASTEXITCODE -ne 0) { Throw "Unit tests failed" }
 }
 
-# Run the integration tests
-Function Run-IntegrationTests() {
-    $env:DOCKER_INTEGRATION_DAEMON_DEST = $root + "\bundles\tmp"
+# Integration  API tests
+Function Build-IntegrationTests() {
     $dirs =  Get-ChildItem -Path integration -Directory -Recurse
     $integration_api_dirs = @()
     ForEach($dir in $dirs) {
@@ -335,6 +338,17 @@ Function Run-IntegrationTests() {
             $integration_api_dirs += $dir
             Write-Host "Building test suite binary $RelativePath"
             go test -c -o "$RelativePath\test.exe" $RelativePath
+        }
+    }
+}
+Function Run-IntegrationTests() {
+    $env:DOCKER_INTEGRATION_DAEMON_DEST = $root + "\bundles\tmp"
+    $dirs =  Get-ChildItem -Path integration -Directory -Recurse
+    $integration_api_dirs = @()
+    ForEach($dir in $dirs) {
+        $RelativePath = "." + $dir.FullName -replace "$($PWD.Path -replace "\\","\\")",""
+        If ($RelativePath -notmatch '(^.\\integration($|\\internal)|\\testdata)') {
+            $integration_api_dirs += $dir
         }
     }
 
@@ -363,7 +377,7 @@ Try {
     if ($Binary) { $Client = $True; $Daemon = $True }
 
     # Default to building the daemon if not asked for anything explicitly.
-    if (-not($Client) -and -not($Daemon) -and -not($DCO) -and -not($PkgImports) -and -not($GoFormat) -and -not($TestUnit) -and -not($TestIntegration)) { $Daemon=$True }
+    if (-not($Client) -and -not($Daemon) -and -not($DCO) -and -not($PkgImports) -and -not($GoFormat) -and -not($TestUnit) -and -not($BuildIntegration) -and -not($TestIntegration)) { $Daemon=$True }
 
     # Verify git is installed
     if ($(Get-Command git -ErrorAction SilentlyContinue) -eq $nil) { Throw "Git does not appear to be installed" }
@@ -451,7 +465,8 @@ Try {
     # Run unit tests
     if ($TestUnit) { Run-UnitTests }
 
-    # Run integration tests
+    # Integration API tests
+    if ($BuildIntegration) { Build-IntegrationTests }
     if ($TestIntegration) { Run-IntegrationTests }
 
     # Gratuitous ASCII art.
