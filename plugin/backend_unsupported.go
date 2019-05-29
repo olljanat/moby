@@ -1,4 +1,4 @@
-// +build !linux
+// +build !linux,!windows
 
 package plugin // import "github.com/docker/docker/plugin"
 
