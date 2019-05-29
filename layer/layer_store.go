@@ -412,7 +412,7 @@ func (ls *layerStore) Map() map[ChainID]Layer {
 func (ls *layerStore) deleteLayer(layer *roLayer, metadata *Metadata) error {
 	// Rename layer digest folder first so we detect orphan layer(s)
 	// if ls.driver.Remove fails
-	err := ls.store.PrepareRemove(layer.chainID)
+	dir, err := ls.store.PrepareRemove(layer.chainID)
 	if err != nil {
 		return err
 	}
@@ -420,7 +420,7 @@ func (ls *layerStore) deleteLayer(layer *roLayer, metadata *Metadata) error {
 	if err != nil {
 		return err
 	}
-	err = ls.store.Remove(layer.chainID, layer.cacheID)
+	err = os.RemoveAll(dir)
 	if err != nil {
 		return err
 	}

@@ -387,7 +387,7 @@ func (fms *fileMetadataStore) List() ([]ChainID, []string, error) {
 	return ids, mounts, nil
 }
 
-func (fms *fileMetadataStore) PrepareRemove(layer ChainID) error {
+func (fms *fileMetadataStore) PrepareRemove(layer ChainID) (string, error) {
 	// Generate unique name for orphan layer which is not in used by
 	// earlier copies of same layer
 	i := 0
@@ -403,7 +403,7 @@ func (fms *fileMetadataStore) PrepareRemove(layer ChainID) error {
 		}
 		i++
 	}
-	return os.Rename(fms.getLayerDirectory(layer), dest)
+	return dest, os.Rename(fms.getLayerDirectory(layer), dest)
 }
 
 // Remove layerdb folder if that is marked for removal
