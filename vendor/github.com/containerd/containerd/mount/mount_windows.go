@@ -32,7 +32,7 @@ var (
 
 // Mount to the provided target
 func (m *Mount) Mount(target string) error {
-	if m.Type != "windows-layer" {
+	if m.Type != "windows-layer" && m.Type != "bind" {
 		return errors.Errorf("invalid windows mount type: '%s'", m.Type)
 	}
 
