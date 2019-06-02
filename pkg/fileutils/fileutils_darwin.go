@@ -25,3 +25,8 @@ func GetTotalUsedFds() int {
 
 	return len(fds) - 1
 }
+
+// Chmod implements chmod on platform specific way
+func Chmod(name string, fileMode os.FileMode) error {
+	return os.Chmod(name, fileMode)
+}

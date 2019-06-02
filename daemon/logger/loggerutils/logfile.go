@@ -15,6 +15,7 @@ import (
 
 	"github.com/docker/docker/daemon/logger"
 	"github.com/docker/docker/pkg/filenotify"
+	"github.com/docker/docker/pkg/fileutils"
 	"github.com/docker/docker/pkg/pools"
 	"github.com/docker/docker/pkg/pubsub"
 	"github.com/fsnotify/fsnotify"
@@ -174,6 +175,10 @@ func (w *LogFile) checkCapacityAndRotate() error {
 	if w.currentSize >= w.capacity {
 		w.rotateMu.Lock()
 		fname := w.f.Name()
+
+		// Trigger chmod event so clients will close file
+		fileutils.Chmod(w.f.Name(), 0000)
+
 		if err := w.f.Close(); err != nil {
 			w.rotateMu.Unlock()
 			return errors.Wrap(err, "error closing file")
@@ -577,6 +582,9 @@ func followLogs(f *os.File, logWatcher *logger.LogWatcher, notifyRotate chan int
 		select {
 		case e := <-fileWatcher.Events():
 			switch e.Op {
+			case fsnotify.Chmod:
+				f.Close()
+				return nil
 			case fsnotify.Write:
 				decodeLogLine = createDecoder(f)
 				return nil
