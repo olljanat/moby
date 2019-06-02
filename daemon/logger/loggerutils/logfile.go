@@ -182,15 +182,17 @@ func (w *LogFile) checkCapacityAndRotate() error {
 			fileutils.Chmod(w.f.Name(), 0100)
 			time.Sleep(50 * time.Millisecond)
 		}
-
+		
 		if err := w.f.Close(); err != nil {
 			w.rotateMu.Unlock()
 			return errors.Wrap(err, "error closing file")
 		}
+		w.closed = true
 		if err := rotate(fname, w.maxFiles, w.compress); err != nil {
 			w.rotateMu.Unlock()
 			return err
 		}
+		w.closed = false
 		file, err := os.OpenFile(fname, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, w.perms)
 		if err != nil {
 			w.rotateMu.Unlock()
