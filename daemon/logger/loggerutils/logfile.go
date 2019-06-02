@@ -178,7 +178,10 @@ func (w *LogFile) checkCapacityAndRotate() error {
 
 		// Trigger chmod event so clients will close file
 		// and prevent them to open it again until rotate is over
-		fileutils.Chmod(w.f.Name(), 0100)
+		if runtime.GOOS == "windows" {
+			fileutils.Chmod(w.f.Name(), 0100)
+			time.Sleep(50 * time.Millisecond)
+		}
 
 		if err := w.f.Close(); err != nil {
 			w.rotateMu.Unlock()
@@ -589,6 +592,7 @@ func followLogs(f *os.File, logWatcher *logger.LogWatcher, notifyRotate chan int
 			switch e.Op {
 			case fsnotify.Chmod:
 				f.Close()
+				time.Sleep(200 * time.Millisecond)
 				return nil
 			case fsnotify.Write:
 				decodeLogLine = createDecoder(f)
