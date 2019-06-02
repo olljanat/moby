@@ -177,7 +177,8 @@ func (w *LogFile) checkCapacityAndRotate() error {
 		fname := w.f.Name()
 
 		// Trigger chmod event so clients will close file
-		fileutils.Chmod(w.f.Name(), 0000)
+		// and prevent them to open it again until rotate is over
+		fileutils.Chmod(w.f.Name(), 0100)
 
 		if err := w.f.Close(); err != nil {
 			w.rotateMu.Unlock()
@@ -229,12 +230,16 @@ func rotate(name string, maxFiles int, compress bool) error {
 	for i := maxFiles - 1; i > 1; i-- {
 		toPath := name + "." + strconv.Itoa(i) + extension
 		fromPath := name + "." + strconv.Itoa(i-1) + extension
-		if err := os.Rename(fromPath, toPath); err != nil && !os.IsNotExist(err) {
+		err := os.Rename(fromPath, toPath)
+		fileutils.Chmod(toPath, 0640)
+		if err != nil && !os.IsNotExist(err) {
 			return err
 		}
 	}
 
-	if err := os.Rename(name, name+".1"); err != nil && !os.IsNotExist(err) {
+	err = os.Rename(name, name+".1")
+	fileutils.Chmod(name+".1", 0640)
+	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 
