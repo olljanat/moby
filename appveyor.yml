@@ -1,0 +1,46 @@
+version: 1.0.{build}
+test: off
+
+image:
+  - Visual Studio 2017
+  - Ubuntu1804
+
+for:
+-
+  matrix:
+    only:
+      - image: Visual Studio 2017
+  cache: c:\baseimages
+  clone_folder: c:\gopath\src\github.com\docker\docker
+  init:
+  - ps: >-
+      New-Item -ItemType Directory -Path "c:\baseimages";
+      docker save -o "c:\baseimages\windowsservercore.tar" "microsoft/windowsservercore:latest"
+  - ps: >-
+      Invoke-WebRequest -Uri https://github.com/jhowardmsft/docker-ci-zap/raw/master/docker-ci-zap.exe -OutFile C:\windows\docker-ci-zap.exe;
+  environment:
+    GOPATH: c:\gopath
+    SOURCES_DRIVE: C
+    SOURCES_SUBDIR: gopath
+    TESTRUN_DRIVE: C
+    TESTRUN_SUBDIR: CI
+  build_script:
+  - ps: .\hack\ci\windows.ps1
+-
+  matrix:
+    only:
+      - image: Ubuntu1804
+  clone_folder: /usr/go/src/github.com/docker/docker
+  build_script:
+  - sh: >-
+      export GITCOMMIT=(git rev-parse --short HEAD)
+      export GIT_COMMIT=(git rev-parse --short HEAD)
+      docker run --rm -t --privileged
+      -v "/usr/go/src/github.com/docker/docker/bundles:/go/src/github.com/docker/docker/bundles"
+      -v "/usr/go/src/github.com/docker/docker/.git:/go/src/github.com/docker/docker/.git"
+      -e DOCKER_GITCOMMIT=${GITCOMMIT}
+      -e DOCKER_GRAPHDRIVER=vfs
+      -e DOCKER_EXECDRIVER=native
+      -e GIT_SHA1=${GIT_COMMIT}
+      docker:$GITCOMMIT
+      hack/ci/janky
