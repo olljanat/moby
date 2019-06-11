@@ -1589,11 +1589,10 @@ func (s *DockerSuite) TestBuildCmd(c *check.C) {
 }
 
 func (s *DockerSuite) TestBuildExpose(c *check.C) {
-	testRequires(c, DaemonIsLinux) // Expose not implemented on Windows
 	name := "testbuildexpose"
 	expected := "map[2375/tcp:{}]"
 
-	buildImageSuccessfully(c, name, build.WithDockerfile(`FROM scratch
+	buildImageSuccessfully(c, name, build.WithDockerfile(`FROM `+minimalBaseImage()+`
         EXPOSE 2375`))
 
 	res := inspectField(c, name, "Config.ExposedPorts")
@@ -1603,7 +1602,6 @@ func (s *DockerSuite) TestBuildExpose(c *check.C) {
 }
 
 func (s *DockerSuite) TestBuildExposeMorePorts(c *check.C) {
-	testRequires(c, DaemonIsLinux) // Expose not implemented on Windows
 	// start building docker file with a large number of ports
 	portList := make([]string, 50)
 	line := make([]string, 100)
@@ -1621,7 +1619,7 @@ func (s *DockerSuite) TestBuildExposeMorePorts(c *check.C) {
 		}
 	}
 
-	dockerfile := `FROM scratch
+	dockerfile := `FROM `+minimalBaseImage()+`
 	EXPOSE {{range .}} {{.}}
 	{{end}}`
 	tmpl := template.Must(template.New("dockerfile").Parse(dockerfile))
@@ -1652,9 +1650,8 @@ func (s *DockerSuite) TestBuildExposeMorePorts(c *check.C) {
 }
 
 func (s *DockerSuite) TestBuildExposeOrder(c *check.C) {
-	testRequires(c, DaemonIsLinux) // Expose not implemented on Windows
 	buildID := func(name, exposed string) string {
-		buildImageSuccessfully(c, name, build.WithDockerfile(fmt.Sprintf(`FROM scratch
+		buildImageSuccessfully(c, name, build.WithDockerfile(fmt.Sprintf(`FROM `+minimalBaseImage()+`
 		EXPOSE %s`, exposed)))
 		id := inspectField(c, name, "Id")
 		return id
@@ -1668,10 +1665,9 @@ func (s *DockerSuite) TestBuildExposeOrder(c *check.C) {
 }
 
 func (s *DockerSuite) TestBuildExposeUpperCaseProto(c *check.C) {
-	testRequires(c, DaemonIsLinux) // Expose not implemented on Windows
 	name := "testbuildexposeuppercaseproto"
 	expected := "map[5678/udp:{}]"
-	buildImageSuccessfully(c, name, build.WithDockerfile(`FROM scratch
+	buildImageSuccessfully(c, name, build.WithDockerfile(`FROM `+minimalBaseImage()+`
         EXPOSE 5678/UDP`))
 	res := inspectField(c, name, "Config.ExposedPorts")
 	if res != expected {

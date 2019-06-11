@@ -947,8 +947,6 @@ func (s *DockerSuite) TestRunNetHostNotAllowedWithLinks(c *check.C) {
 // codepath is executed with "docker run -h <hostname>".  Both were manually
 // tested, but this testcase takes the simpler path of using "run -h .."
 func (s *DockerSuite) TestRunFullHostnameSet(c *check.C) {
-	// TODO Windows: -h is not yet functional.
-	testRequires(c, DaemonIsLinux)
 	out, _ := dockerCmd(c, "run", "-h", "foo.bar.baz", "busybox", "hostname")
 	if actual := strings.Trim(out, "\r\n"); actual != "foo.bar.baz" {
 		c.Fatalf("expected hostname 'foo.bar.baz', received %s", actual)
@@ -2046,15 +2044,18 @@ func (s *DockerSuite) TestRunDeallocatePortOnMissingIptablesRule(c *check.C) {
 }
 
 func (s *DockerSuite) TestRunPortInUse(c *check.C) {
-	// TODO Windows. The duplicate NAT message returned by Windows will be
-	// changing as is currently completely undecipherable. Does need modifying
-	// to run sh rather than top though as top isn't in Windows busybox.
-	testRequires(c, testEnv.IsLocalDaemon, DaemonIsLinux)
+	cmd := "top"
+	if testEnv.OSType == "windows" {
+		// Disabled prior to RS5 because multiple NAT networks is not supported
+		testRequires(c, DaemonIsWindowsAtLeastBuild(17763))
+		cmd = "sleep 240"
+	}
+	testRequires(c, testEnv.IsLocalDaemon)
 
 	port := "1234"
-	dockerCmd(c, "run", "-d", "-p", port+":80", "busybox", "top")
+	dockerCmd(c, "run", "-d", "-p", port+":80", "busybox", cmd)
 
-	out, _, err := dockerCmdWithError("run", "-d", "-p", port+":80", "busybox", "top")
+	out, _, err := dockerCmdWithError("run", "-d", "-p", port+":80", "busybox", cmd)
 	if err == nil {
 		c.Fatalf("Binding on used port must fail")
 	}
@@ -2065,10 +2066,12 @@ func (s *DockerSuite) TestRunPortInUse(c *check.C) {
 
 // https://github.com/docker/docker/issues/12148
 func (s *DockerSuite) TestRunAllocatePortInReservedRange(c *check.C) {
-	// TODO Windows. -P is not yet supported
-	testRequires(c, DaemonIsLinux)
+	cmd := "top"
+	if testEnv.OSType == "windows" {
+		cmd = "sleep 240"
+	}
 	// allocate a dynamic port to get the most recent
-	out, _ := dockerCmd(c, "run", "-d", "-P", "-p", "80", "busybox", "top")
+	out, _ := dockerCmd(c, "run", "-d", "-P", "-p", "80", "busybox", cmd)
 
 	id := strings.TrimSpace(out)
 	out, _ = dockerCmd(c, "port", id, "80")
@@ -2081,7 +2084,7 @@ func (s *DockerSuite) TestRunAllocatePortInReservedRange(c *check.C) {
 
 	// allocate a static port and a dynamic port together, with static port
 	// takes the next recent port in dynamic port range.
-	dockerCmd(c, "run", "-d", "-P", "-p", "80", "-p", fmt.Sprintf("%d:8080", port+1), "busybox", "top")
+	dockerCmd(c, "run", "-d", "-P", "-p", "80", "-p", fmt.Sprintf("%d:8080", port+1), "busybox", cmd)
 }
 
 // Regression test for #7792
@@ -2498,11 +2501,13 @@ func (s *DockerSuite) TestRunTLSVerify(c *check.C) {
 }
 
 func (s *DockerSuite) TestRunPortFromDockerRangeInUse(c *check.C) {
-	// TODO Windows. Once moved to libnetwork/CNM, this may be able to be
-	// re-instated.
-	testRequires(c, DaemonIsLinux)
+	cmd := "top"
+	if runtime.GOOS == "windows" {
+		cmd = "sleep 240"
+	}
+
 	// first find allocator current position
-	out, _ := dockerCmd(c, "run", "-d", "-p", ":80", "busybox", "top")
+	out, _ := dockerCmd(c, "run", "-d", "-p", ":80", "busybox", cmd)
 
 	id := strings.TrimSpace(out)
 	out, _ = dockerCmd(c, "port", id)
@@ -2523,7 +2528,7 @@ func (s *DockerSuite) TestRunPortFromDockerRangeInUse(c *check.C) {
 	}
 	defer l.Close()
 
-	out, _ = dockerCmd(c, "run", "-d", "-p", ":80", "busybox", "top")
+	out, _ = dockerCmd(c, "run", "-d", "-p", ":80", "busybox", cmd)
 
 	id = strings.TrimSpace(out)
 	dockerCmd(c, "port", id)
@@ -2987,9 +2992,12 @@ func (s *DockerSuite) TestRunUnshareProc(c *check.C) {
 }
 
 func (s *DockerSuite) TestRunPublishPort(c *check.C) {
-	// TODO Windows: This may be possible once Windows moves to libnetwork and CNM
-	testRequires(c, DaemonIsLinux)
-	dockerCmd(c, "run", "-d", "--name", "test", "--expose", "8080", "busybox", "top")
+	cmd := "top"
+	if testEnv.OSType == "windows" {
+		cmd = "sleep 240"
+	}
+
+	dockerCmd(c, "run", "-d", "--name", "test", "--expose", "8080", "busybox", cmd)
 	out, _ := dockerCmd(c, "port", "test")
 	out = strings.Trim(out, "\r\n")
 	if out != "" {
@@ -4526,8 +4534,6 @@ func (s *DockerSuite) TestRunHostnameFQDN(c *check.C) {
 
 // Test case for 29129
 func (s *DockerSuite) TestRunHostnameInHostMode(c *check.C) {
-	testRequires(c, DaemonIsLinux, NotUserNamespace)
-
 	expectedOutput := "foobar\nfoobar"
 	out, _ := dockerCmd(c, "run", "--net=host", "--hostname=foobar", "busybox", "sh", "-c", `echo $HOSTNAME && hostname`)
 	assert.Equal(c, strings.TrimSpace(out), expectedOutput)
