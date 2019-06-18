@@ -831,7 +831,8 @@ Try {
                 Write-Host -ForegroundColor Green "INFO: DOCKER_HOST at $DASHH_CUT"
 
                 Write-Host -ForegroundColor Green "INFO: Running daemon kill test before starting actual integration tests"
-                & "$env:TEMP\binary\docker-$COMMITHASH" "-H=$($DASHH_CUT)" --detach=true --name=daemon-kill-test busybox sleep 240 2>&1 | Out-Null
+                Start-Process "$env:TEMP\binary\docker-$COMMITHASH" -ArgumentList "-H=$($DASHH_CUT) --detach=true --name=daemon-kill-test busybox sleep 240" -Wait
+                Start-Sleep -Seconds 30
                 # Kill any spurious daemons. The '-' is IMPORTANT otherwise will kill the control daemon!
                 $pids=$(get-process | where-object {$_.ProcessName -like 'dockerd-*'}).id
                 foreach ($p in $pids) {
