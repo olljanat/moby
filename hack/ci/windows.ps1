@@ -830,6 +830,27 @@ Try {
                 $env:PATH="$env:TEMP\binary;$env:PATH;"  # Force to use the test binaries, not the host ones.
                 Write-Host -ForegroundColor Green "INFO: DOCKER_HOST at $DASHH_CUT"
 
+                Write-Host -ForegroundColor Green "INFO: Running daemon kill test before starting actual integration tests"
+                & "$env:TEMP\binary\docker-$COMMITHASH" "-H=$($DASHH_CUT)" --detach=true --name=daemon-kill-test busybox sleep 240 2>&1 | Out-Null
+                # Kill any spurious daemons. The '-' is IMPORTANT otherwise will kill the control daemon!
+                $pids=$(get-process | where-object {$_.ProcessName -like 'dockerd-*'}).id
+                foreach ($p in $pids) {
+                    Write-Host "INFO: Killing daemon with PID $p"
+                    Stop-Process -Id $p -Force -ErrorAction SilentlyContinue
+                }
+                Start-Process "$env:TEMP\binary\dockerd-$COMMITHASH" `
+                -ArgumentList $dutArgs `
+                -RedirectStandardOutput "$env:TEMP\dut.out" `
+                -RedirectStandardError "$env:TEMP\dut.err"
+                Write-Host -ForegroundColor Green "INFO: Daemon restarted started successfully."
+                $ContainerStatus = docker ps --all --filter name=daemon-kill-test --format "{{.Status}}"
+                if ($ContainerStatus | Where-Object {$_ -notlike "Exited*"}) {
+                    $ErrorActionPreference = "Stop"
+                    if (-not($LastExitCode -eq 0)) {
+                        Throw "ERROR: Incorrect container state after daemon kill and restart, expected state 'Exited' actual state $ContainerStatus"
+                    }
+                }
+
                 $ErrorActionPreference = "SilentlyContinue"
                 Write-Host -ForegroundColor Cyan "INFO: Integration API tests being run from the host:"
                 if (!($env:INTEGRATION_TESTFLAGS)) {
