@@ -842,13 +842,14 @@ Try {
                 -ArgumentList $dutArgs `
                 -RedirectStandardOutput "$env:TEMP\dut.out" `
                 -RedirectStandardError "$env:TEMP\dut.err"
-                Write-Host -ForegroundColor Green "INFO: Daemon restarted started successfully."
+                Write-Host -ForegroundColor Green "INFO: Daemon restarted successfully."
                 $ContainerStatus = docker ps --all --filter name=daemon-kill-test --format "{{.Status}}"
-                if ($ContainerStatus | Where-Object {$_ -notlike "Exited*"}) {
+                if ($ContainerStatus.count -ne 1) {
                     $ErrorActionPreference = "Stop"
-                    if (-not($LastExitCode -eq 0)) {
-                        Throw "ERROR: Incorrect container state after daemon kill and restart, expected state 'Exited' actual state $ContainerStatus"
-                    }
+                    Throw "ERROR: Incorrect container number of containers with name 'daemon-kill-test' expected 1 actual $($ContainerStatus.count)"
+                } elseif ($ContainerStatus | Where-Object {$_ -notlike "Exited*"}) {
+                    $ErrorActionPreference = "Stop"
+                    Throw "ERROR: Incorrect container state after daemon kill and restart, expected state 'Exited' actual state $ContainerStatus"
                 }
 
                 $ErrorActionPreference = "SilentlyContinue"
