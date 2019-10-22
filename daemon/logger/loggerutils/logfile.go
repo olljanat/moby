@@ -17,6 +17,7 @@ import (
 	"github.com/docker/docker/pkg/filenotify"
 	"github.com/docker/docker/pkg/pools"
 	"github.com/docker/docker/pkg/pubsub"
+	"github.com/docker/docker/pkg/stringid"
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -216,7 +217,16 @@ func rotate(name string, maxFiles int, compress bool) error {
 	}
 
 	lastFile := fmt.Sprintf("%s.%d%s", name, maxFiles-1, extension)
-	err := os.Remove(lastFile)
+
+	// Prior Windows 1903 removed files will exists on file system
+	// until all handles to them are closed so to avoid issues
+	// we rename last log file to random name before removal.
+	err := os.Rename(lastFile, lastFile+stringid.GenerateRandomID())
+	if err != nil && !os.IsNotExist(err) {
+		return errors.Wrap(err, "error rename oldest log file")
+	}
+
+	err = os.Remove(lastFile)
 	if err != nil && !os.IsNotExist(err) {
 		return errors.Wrap(err, "error removing oldest log file")
 	}
