@@ -10,7 +10,7 @@
     "versions":  {
                      "19.03.5-olljanat1":  {
                                      "date":  "2019-11-27T13:35:03",
-                                     "url":  "https://github.com/olljanat/moby/releases/download/docker-19-03-5-olljanat1/docker-19-03-5-olljanat1.zip",
+                                     "url":  "https://github.com/olljanat/moby/releases/download/19.03.5-olljanat1/docker-19-03-5-olljanat1.zip",
                                      "size":  "128711618",
                                      "notes":  "Contains Docker EE for use with Windows Server.",
                                      "sha256":  "F79F6CE1EEE26B5A418CCBF325F82EF60A980CBAF823A1902324B2204FAB2679"
