@@ -430,10 +430,13 @@ func (ls *layerStore) deleteLayer(layer *roLayer, metadata *Metadata) error {
 		}
 		break
 	}
+	logrus.Debugf("deleteLayer() calling ls.driver.Remove for cache ID: %s", layer.cacheID)
 	err := ls.driver.Remove(layer.cacheID)
 	if err != nil {
+		logrus.Debugf("deleteLayer() -ls.driver.Remove returned error: %s", err.Error())
 		return err
 	}
+	logrus.Debugf("deleteLayer() calling os.RemoveAll() for directory: %s", dir)
 	err = os.RemoveAll(dir)
 	if err != nil {
 		return err
