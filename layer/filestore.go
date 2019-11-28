@@ -402,10 +402,13 @@ func (fms *fileMetadataStore) Remove(layer ChainID, cache string) error {
 	if err != nil {
 		return err
 	}
+	// At this stage, dgst.String() value looks like <hash algorithm>:<digest>
+	// Split on ':' to get the digest value.
+	dgstSplit := strings.Split(dgst.String(), ":")
 	for _, f := range files {
 		logrus.Debugf("Remove() processsing folder: %s", f.Name())
-		if !strings.HasSuffix(f.Name(), "-removing") || !strings.HasPrefix(f.Name(), dgst.String()) {
-			logrus.Debugf("Remove() folder: %s does not match to digest %s", f.Name(), dgst.String())
+		if !strings.HasSuffix(f.Name(), "-removing") || !strings.HasPrefix(f.Name(), dgst.Encoded()) {
+			logrus.Debugf("Remove() folder: %s does not match to digest, split version %s encoded version: %s", f.Name(), dgstSplit[1], dgst.Encoded())
 			continue
 		}
 
