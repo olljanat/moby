@@ -405,6 +405,7 @@ func (fms *fileMetadataStore) Remove(layer ChainID, cache string) error {
 	for _, f := range files {
 		logrus.Debugf("Remove() processsing folder: %s", f.Name())
 		if !strings.HasSuffix(f.Name(), "-removing") || !strings.HasPrefix(f.Name(), dgst.String()) {
+			logrus.Debugf("Remove() folder: %s does not match to digest %s", f.Name(), dgst.String())
 			continue
 		}
 
