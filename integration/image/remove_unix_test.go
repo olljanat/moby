@@ -88,6 +88,12 @@ func TestRemoveImageGarbageCollector(t *testing.T) {
 
 	// Run imageService.Cleanup() and make sure that layer was removed from disk
 	i.Cleanup()
-	dir, err = os.Stat(data["UpperDir"])
-	assert.ErrorContains(t, err, "no such file or directory")
+	_, err = os.Stat(data["UpperDir"])
+	assert.Assert(t, os.IsNotExist(err))
+
+	// Make sure that removal pending layers does not exist on layerdb either
+	layerdbItems, _ := ioutil.ReadDir(filepath.Join(d.RootDir(), "/image/overlay2/layerdb/sha256"))
+	for _, folder := range layerdbItems {
+		assert.Equal(t, false, strings.HasSuffix(folder.Name(), "-removing"))
+	}
 }
