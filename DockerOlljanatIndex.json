@@ -14,6 +14,13 @@
                                      "size":  "128711618",
                                      "notes":  "Contains Docker EE for use with Windows Server.",
                                      "sha256":  "F79F6CE1EEE26B5A418CCBF325F82EF60A980CBAF823A1902324B2204FAB2679"
-                                 }
-                 }
+                                 },
+                     "19.03.5-olljanat2":  {
+                                    "date":  "2019-11-29T07:05:03",
+                                    "url":  "https://github.com/olljanat/moby/releases/download/19.03.5-olljanat1/docker-19-03-5-olljanat2.zip",
+                                    "size":  "128173189",
+                                    "notes":  "Contains Docker EE for use with Windows Server.",
+                                    "sha256":  "96F62CE77DF593649C1725492C85DE20345A7D8F804426707A5C1BE87FB57020"
+                                }
+                }
 }

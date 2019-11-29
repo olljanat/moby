@@ -11,5 +11,5 @@ You can update Docker to latest custom build with commands:
 ```powershell
 Install-Module -Name DockerMsftProvider -Repository PSGallery -Force
 Register-PackageSource -ProviderName DockerMsftProvider -Name "olljanat-custom-builds" -Location "https://raw.githubusercontent.com/olljanat/moby/v19.03.5-custom/DockerOlljanatIndex.json"
-Install-Package -Name docker -ProviderName DockerMsftProvider -Update -Force -RequiredVersion "19.03.5-olljanat1"
+Install-Package -Name docker -ProviderName DockerMsftProvider -Update -Force -RequiredVersion "19.03.5-olljanat2"
 ```

@@ -1,4 +1,4 @@
-$VERSION = "v19.03.5-olljanat1"
+$VERSION = "v19.03.5-olljanat2"
 
 cd C:\gopath\src\github.com\docker\docker
 docker build -t nativebuildimage -f Dockerfile.windows .
