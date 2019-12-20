@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -380,23 +381,27 @@ func WriteBackupStreamFromTarFile(w io.Writer, t *tar.Reader, hdr *tar.Header) (
 		}
 	}
 	if hdr.Typeflag == tar.TypeSymlink {
-		_, isMountPoint := hdr.Winheaders[hdrMountPoint]
-		rp := winio.ReparsePoint{
-			Target:       filepath.FromSlash(hdr.Linkname),
-			IsMountPoint: isMountPoint,
-		}
-		reparse := winio.EncodeReparsePoint(&rp)
-		bhdr := winio.BackupHeader{
-			Id:   winio.BackupReparseData,
-			Size: int64(len(reparse)),
-		}
-		err := bw.WriteHeader(&bhdr)
-		if err != nil {
-			return nil, err
-		}
-		_, err = bw.Write(reparse)
-		if err != nil {
-			return nil, err
+		target := filepath.FromSlash(hdr.Linkname)
+		// Skip symlink if file/folder already exists on target
+		if _, err := os.Stat(target); os.IsNotExist(err) {
+			_, isMountPoint := hdr.Winheaders[hdrMountPoint]
+			rp := winio.ReparsePoint{
+				Target:       target,
+				IsMountPoint: isMountPoint,
+			}
+			reparse := winio.EncodeReparsePoint(&rp)
+			bhdr := winio.BackupHeader{
+				Id:   winio.BackupReparseData,
+				Size: int64(len(reparse)),
+			}
+			err := bw.WriteHeader(&bhdr)
+			if err != nil {
+				return nil, err
+			}
+			_, err = bw.Write(reparse)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	if hdr.Typeflag == tar.TypeReg || hdr.Typeflag == tar.TypeRegA {
