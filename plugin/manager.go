@@ -413,7 +413,7 @@ func (pm *Manager) enable(p *v2.Plugin, c *controller, force bool) error {
 			logrus.Errorf("failed to create PropagatedMount directory at %s: %v", propRoot, err)
 		}
 
-		// FixMe:
+		// FixMe: Windows does not support MakeRShared
 		/*
 			if err := mount.MakeRShared(propRoot); err != nil {
 				return errors.Wrap(err, "error setting up propagated mount dir")
@@ -426,15 +426,18 @@ func (pm *Manager) enable(p *v2.Plugin, c *controller, force bool) error {
 		return errors.WithStack(err)
 	}
 
-	stdout, stderr := makeLoggerStreams(p.GetID())
-	if err := pm.executor.Create(p.GetID(), *spec, stdout, stderr); err != nil {
-		if p.PluginObj.Config.PropagatedMount != "" {
-			if err := mount.Unmount(propRoot); err != nil {
-				logrus.WithField("plugin", p.Name()).WithError(err).Warn("Failed to unmount vplugin propagated mount root")
+	// FixMe: Windows does not support Unmount
+	/*
+		stdout, stderr := makeLoggerStreams(p.GetID())
+		if err := pm.executor.Create(p.GetID(), *spec, stdout, stderr); err != nil {
+			if p.PluginObj.Config.PropagatedMount != "" {
+				if err := mount.Unmount(propRoot); err != nil {
+					logrus.WithField("plugin", p.Name()).WithError(err).Warn("Failed to unmount vplugin propagated mount root")
+				}
 			}
+			return errors.WithStack(err)
 		}
-		return errors.WithStack(err)
-	}
+	*/
 	return pm.pluginPostStart(p, c)
 }
 
