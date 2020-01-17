@@ -211,5 +211,5 @@ type PluginSettings struct {
 type PluginConfigWindows struct {
 	// layerFolders
 	// Required: true
-	LayerFolders []string `json:"layerFolders"`
+	LayerFolders []string `json:"LayerFolders"`
 }
