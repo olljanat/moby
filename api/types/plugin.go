@@ -92,6 +92,10 @@ type PluginConfig struct {
 	// Required: true
 	WorkDir string `json:"WorkDir"`
 
+	// windows
+	// Required: false
+	Windows PluginConfigWindows `json:"Windows"`
+
 	// rootfs
 	Rootfs *PluginConfigRootfs `json:"rootfs,omitempty"`
 }
@@ -200,4 +204,12 @@ type PluginSettings struct {
 	// mounts
 	// Required: true
 	Mounts []PluginMount `json:"Mounts"`
+}
+
+// PluginConfigWindows plugin config windows
+// swagger:model PluginConfigWindows
+type PluginConfigWindows struct {
+	// layerFolders
+	// Required: true
+	LayerFolders []string `json:"layerFolders"`
 }
