@@ -8,10 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path"
-	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"syscall"
@@ -227,68 +224,71 @@ func (c *client) createWindows(id string, spec *specs.Spec, runtimeOptions inter
 		configuration.Credentials = cs
 	}
 
-	// We must have least two layers in the spec, the bottom one being a
-	// base image, the top one being the RW layer.
-	if spec.Windows.LayerFolders == nil || len(spec.Windows.LayerFolders) < 2 {
-		return fmt.Errorf("OCI spec is invalid - at least two LayerFolders must be supplied to the runtime")
-	}
-
-	// Strip off the top-most layer as that's passed in separately to HCS
-	configuration.LayerFolderPath = spec.Windows.LayerFolders[len(spec.Windows.LayerFolders)-1]
-	layerFolders := spec.Windows.LayerFolders[:len(spec.Windows.LayerFolders)-1]
-
-	if configuration.HvPartition {
-		// We don't currently support setting the utility VM image explicitly.
-		// TODO circa RS5, this may be re-locatable.
-		if spec.Windows.HyperV.UtilityVMPath != "" {
-			return errors.New("runtime does not support an explicit utility VM path for Hyper-V containers")
+	// FixMe:
+	/*
+		// We must have least two layers in the spec, the bottom one being a
+		// base image, the top one being the RW layer.
+		if spec.Windows.LayerFolders == nil || len(spec.Windows.LayerFolders) < 2 {
+			return fmt.Errorf("OCI spec is invalid - at least two LayerFolders must be supplied to the runtime")
 		}
 
-		// Find the upper-most utility VM image.
-		var uvmImagePath string
-		for _, path := range layerFolders {
-			fullPath := filepath.Join(path, "UtilityVM")
-			_, err := os.Stat(fullPath)
-			if err == nil {
-				uvmImagePath = fullPath
-				break
+		// Strip off the top-most layer as that's passed in separately to HCS
+		configuration.LayerFolderPath = spec.Windows.LayerFolders[len(spec.Windows.LayerFolders)-1]
+		layerFolders := spec.Windows.LayerFolders[:len(spec.Windows.LayerFolders)-1]
+
+		if configuration.HvPartition {
+			// We don't currently support setting the utility VM image explicitly.
+			// TODO circa RS5, this may be re-locatable.
+			if spec.Windows.HyperV.UtilityVMPath != "" {
+				return errors.New("runtime does not support an explicit utility VM path for Hyper-V containers")
 			}
-			if !os.IsNotExist(err) {
+
+			// Find the upper-most utility VM image.
+			var uvmImagePath string
+			for _, path := range layerFolders {
+				fullPath := filepath.Join(path, "UtilityVM")
+				_, err := os.Stat(fullPath)
+				if err == nil {
+					uvmImagePath = fullPath
+					break
+				}
+				if !os.IsNotExist(err) {
+					return err
+				}
+			}
+			if uvmImagePath == "" {
+				return errors.New("utility VM image could not be found")
+			}
+			configuration.HvRuntime = &hcsshim.HvRuntime{ImagePath: uvmImagePath}
+
+			if spec.Root.Path != "" {
+				return errors.New("OCI spec is invalid - Root.Path must be omitted for a Hyper-V container")
+			}
+		} else {
+			const volumeGUIDRegex = `^\\\\\?\\(Volume)\{{0,1}[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}(\}){0,1}\}\\$`
+			if _, err := regexp.MatchString(volumeGUIDRegex, spec.Root.Path); err != nil {
+				return fmt.Errorf(`OCI spec is invalid - Root.Path '%s' must be a volume GUID path in the format '\\?\Volume{GUID}\'`, spec.Root.Path)
+			}
+			// HCS API requires the trailing backslash to be removed
+			configuration.VolumePath = spec.Root.Path[:len(spec.Root.Path)-1]
+		}
+
+		if spec.Root.Readonly {
+			return errors.New(`OCI spec is invalid - Root.Readonly must not be set on Windows`)
+		}
+
+		for _, layerPath := range layerFolders {
+			_, filename := filepath.Split(layerPath)
+			g, err := hcsshim.NameToGuid(filename)
+			if err != nil {
 				return err
 			}
+			configuration.Layers = append(configuration.Layers, hcsshim.Layer{
+				ID:   g.ToString(),
+				Path: layerPath,
+			})
 		}
-		if uvmImagePath == "" {
-			return errors.New("utility VM image could not be found")
-		}
-		configuration.HvRuntime = &hcsshim.HvRuntime{ImagePath: uvmImagePath}
-
-		if spec.Root.Path != "" {
-			return errors.New("OCI spec is invalid - Root.Path must be omitted for a Hyper-V container")
-		}
-	} else {
-		const volumeGUIDRegex = `^\\\\\?\\(Volume)\{{0,1}[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}(\}){0,1}\}\\$`
-		if _, err := regexp.MatchString(volumeGUIDRegex, spec.Root.Path); err != nil {
-			return fmt.Errorf(`OCI spec is invalid - Root.Path '%s' must be a volume GUID path in the format '\\?\Volume{GUID}\'`, spec.Root.Path)
-		}
-		// HCS API requires the trailing backslash to be removed
-		configuration.VolumePath = spec.Root.Path[:len(spec.Root.Path)-1]
-	}
-
-	if spec.Root.Readonly {
-		return errors.New(`OCI spec is invalid - Root.Readonly must not be set on Windows`)
-	}
-
-	for _, layerPath := range layerFolders {
-		_, filename := filepath.Split(layerPath)
-		g, err := hcsshim.NameToGuid(filename)
-		if err != nil {
-			return err
-		}
-		configuration.Layers = append(configuration.Layers, hcsshim.Layer{
-			ID:   g.ToString(),
-			Path: layerPath,
-		})
-	}
+	*/
 
 	// Add the mounts (volumes, bind mounts etc) to the structure
 	var mds []hcsshim.MappedDir
@@ -408,26 +408,29 @@ func (c *client) createLinux(id string, spec *specs.Spec, runtimeOptions interfa
 
 	c.extractResourcesFromSpec(spec, configuration)
 
-	// We must have least one layer in the spec
-	if spec.Windows.LayerFolders == nil || len(spec.Windows.LayerFolders) == 0 {
-		return fmt.Errorf("OCI spec is invalid - at least one LayerFolders must be supplied to the runtime")
-	}
-
-	// Strip off the top-most layer as that's passed in separately to HCS
-	configuration.LayerFolderPath = spec.Windows.LayerFolders[len(spec.Windows.LayerFolders)-1]
-	layerFolders := spec.Windows.LayerFolders[:len(spec.Windows.LayerFolders)-1]
-
-	for _, layerPath := range layerFolders {
-		_, filename := filepath.Split(layerPath)
-		g, err := hcsshim.NameToGuid(filename)
-		if err != nil {
-			return err
+	// FixMe:
+	/*
+		// We must have least one layer in the spec
+		if spec.Windows.LayerFolders == nil || len(spec.Windows.LayerFolders) == 0 {
+			return fmt.Errorf("OCI spec is invalid - at least one LayerFolders must be supplied to the runtime")
 		}
-		configuration.Layers = append(configuration.Layers, hcsshim.Layer{
-			ID:   g.ToString(),
-			Path: filepath.Join(layerPath, "layer.vhd"),
-		})
-	}
+
+		// Strip off the top-most layer as that's passed in separately to HCS
+		configuration.LayerFolderPath = spec.Windows.LayerFolders[len(spec.Windows.LayerFolders)-1]
+		layerFolders := spec.Windows.LayerFolders[:len(spec.Windows.LayerFolders)-1]
+
+		for _, layerPath := range layerFolders {
+			_, filename := filepath.Split(layerPath)
+			g, err := hcsshim.NameToGuid(filename)
+			if err != nil {
+				return err
+			}
+			configuration.Layers = append(configuration.Layers, hcsshim.Layer{
+				ID:   g.ToString(),
+				Path: filepath.Join(layerPath, "layer.vhd"),
+			})
+		}
+	*/
 
 	if spec.Windows.Network != nil {
 		configuration.EndpointList = spec.Windows.Network.EndpointList
