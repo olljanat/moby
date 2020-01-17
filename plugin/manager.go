@@ -426,18 +426,18 @@ func (pm *Manager) enable(p *v2.Plugin, c *controller, force bool) error {
 		return errors.WithStack(err)
 	}
 
-	// FixMe: Windows does not support Unmount
-	/*
-		stdout, stderr := makeLoggerStreams(p.GetID())
-		if err := pm.executor.Create(p.GetID(), *spec, stdout, stderr); err != nil {
+	stdout, stderr := makeLoggerStreams(p.GetID())
+	if err := pm.executor.Create(p.GetID(), *spec, stdout, stderr); err != nil {
+		// FixMe: Windows does not support Unmount
+		/*
 			if p.PluginObj.Config.PropagatedMount != "" {
 				if err := mount.Unmount(propRoot); err != nil {
 					logrus.WithField("plugin", p.Name()).WithError(err).Warn("Failed to unmount vplugin propagated mount root")
 				}
 			}
-			return errors.WithStack(err)
-		}
-	*/
+		*/
+		return errors.WithStack(err)
+	}
 	return pm.pluginPostStart(p, c)
 }
 
