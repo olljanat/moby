@@ -1,4 +1,4 @@
-// +build !linux
+// +build !linux,!windows
 
 package v2 // import "github.com/docker/docker/plugin/v2"
 
