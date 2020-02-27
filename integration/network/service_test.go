@@ -329,6 +329,7 @@ func TestServiceWithDataPathPortInit(t *testing.T) {
 	defer setupTest(t)()
 	var datapathPort uint32 = 7777
 	d := swarm.NewSwarm(t, testEnv, daemon.WithSwarmDataPathPort(datapathPort))
+	defer d.Stop(t)
 	c := d.NewClientT(t)
 	ctx := context.Background()
 	// Create a overlay network
@@ -391,7 +392,6 @@ func TestServiceWithDataPathPortInit(t *testing.T) {
 }
 
 func TestServiceWithDefaultAddressPoolInit(t *testing.T) {
-	skip.If(t, testEnv.OSType == "windows")
 	skip.If(t, testEnv.IsRootless, "rootless mode doesn't support Swarm-mode")
 	defer setupTest(t)()
 	d := swarm.NewSwarm(t, testEnv,

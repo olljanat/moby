@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"strconv"
@@ -33,4 +34,15 @@ func (d *Daemon) CgroupNamespace(t testing.TB) string {
 }
 
 func setsid(cmd *exec.Cmd) {
+}
+
+// Sock returns host of the daemon started by hack\ci\windows.ps1
+func (d *Daemon) Sock() string {
+	return fmt.Sprintf("tcp://127.0.0.1:2357")
+}
+
+// On Windows we force leave from swarm instead of stop daemon
+func (d *Daemon) Stop(t testing.TB) {
+	c := d.NewClientT(t)
+	c.SwarmLeave(context.Background(), true)
 }
