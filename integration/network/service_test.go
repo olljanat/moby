@@ -336,6 +336,7 @@ func TestServiceWithDataPathPortInit(t *testing.T) {
 	defer setupTest(t)()
 	var datapathPort uint32 = 7777
 	d := swarm.NewSwarm(t, testEnv, daemon.WithSwarmDataPathPort(datapathPort))
+	defer d.Stop(t)
 	c := d.NewClientT(t)
 	ctx := context.Background()
 	// Create a overlay network

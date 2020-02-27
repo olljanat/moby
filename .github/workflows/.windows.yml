@@ -368,6 +368,17 @@ jobs:
         env:
           DOCKER_HOST: npipe:////./pipe/docker_engine
       -
+        name: Enable swarm mode
+        run: |
+          Write-Host "Enabling swarm mode and removing ingress network from it"
+          $ErrorActionPreference = "SilentlyContinue"
+          & "${{ env.BIN_OUT }}\docker" swarm init
+          Start-Sleep -Seconds 30
+          echo y|& "${{ env.BIN_OUT }}\docker" network rm ingress
+          $ErrorActionPreference = "Stop"
+        env:
+          DOCKER_HOST: npipe:////./pipe/docker_engine
+      -
         name: Docker info
         run: |
           & "${{ env.BIN_OUT }}\docker" info

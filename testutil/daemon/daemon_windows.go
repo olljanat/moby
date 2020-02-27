@@ -1,11 +1,14 @@
 package daemon
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"strconv"
 	"testing"
 
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
 	"golang.org/x/sys/windows"
 	"gotest.tools/v3/assert"
 )
@@ -35,4 +38,33 @@ func (d *Daemon) CgroupNamespace(t testing.TB) string {
 }
 
 func setsid(cmd *exec.Cmd) {
+}
+
+// Sock returns the npipe path of the daemon
+func (d *Daemon) Sock() string {
+	return fmt.Sprintf("npipe:////./pipe/docker_engine")
+}
+
+// On Windows we do not stop daemon but instead of just cleanup it
+// because we want to avoid ingress removal and re-creation process
+// which would break network from CI servers.
+func (d *Daemon) Stop(t testing.TB) {
+	c := d.NewClientT(t)
+	c.ContainersPrune(context.Background(), filters.NewArgs())
+	c.ImagesPrune(context.Background(), filters.NewArgs())
+	c.NetworksPrune(context.Background(), filters.NewArgs())
+	c.VolumesPrune(context.Background(), filters.NewArgs())
+
+	serviceList, _ := c.ServiceList(context.Background(), types.ServiceListOptions{})
+	for _, service := range serviceList {
+		c.ServiceRemove(context.Background(), service.ID)
+	}
+	configList, _ := c.ConfigList(context.Background(), types.ConfigListOptions{})
+	for _, config := range configList {
+		c.ConfigRemove(context.Background(), config.ID)
+	}
+	secretList, _ := c.SecretList(context.Background(), types.SecretListOptions{})
+	for _, secret := range secretList {
+		c.SecretRemove(context.Background(), secret.ID)
+	}
 }

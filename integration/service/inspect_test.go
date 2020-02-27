@@ -2,6 +2,7 @@ package service // import "github.com/docker/docker/integration/service"
 
 import (
 	"context"
+	"runtime"
 	"testing"
 	"time"
 
@@ -18,7 +19,6 @@ import (
 
 func TestInspect(t *testing.T) {
 	skip.If(t, testEnv.IsRemoteDaemon)
-	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
 	defer setupTest(t)()
 	d := swarm.NewSwarm(t, testEnv)
 	defer d.Stop(t)
@@ -73,6 +73,14 @@ func cmpServiceOpts() cmp.Option {
 }
 
 func fullSwarmServiceSpec(name string, replicas uint64) swarmtypes.ServiceSpec {
+	cmd := []string{"/bin/top"}
+	cmdArgs := []string{"-d", "5"}
+	user := "root"
+	if runtime.GOOS == "windows" {
+		cmd = []string{"sleep", "240"}
+		cmdArgs = []string{""}
+		user = "ContainerAdministrator"
+	}
 	restartDelay := 100 * time.Millisecond
 	maxAttempts := uint64(4)
 
@@ -87,12 +95,12 @@ func fullSwarmServiceSpec(name string, replicas uint64) swarmtypes.ServiceSpec {
 			ContainerSpec: &swarmtypes.ContainerSpec{
 				Image:           "busybox:latest",
 				Labels:          map[string]string{"container-label": "container-value"},
-				Command:         []string{"/bin/top"},
-				Args:            []string{"-d", "5"},
+				Command:         cmd,
+				Args:            cmdArgs,
 				Hostname:        "hostname",
 				Env:             []string{"envvar=envvalue"},
 				Dir:             "/work",
-				User:            "root",
+				User:            user,
 				StopSignal:      "SIGINT",
 				StopGracePeriod: &restartDelay,
 				Hosts:           []string{"8.8.8.8  google"},

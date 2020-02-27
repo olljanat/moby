@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"runtime"
 	"sort"
 	"testing"
 	"time"
@@ -22,8 +23,6 @@ import (
 )
 
 func TestConfigInspect(t *testing.T) {
-	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
-
 	defer setupTest(t)()
 	d := swarm.NewSwarm(t, testEnv)
 	defer d.Stop(t)
@@ -46,8 +45,6 @@ func TestConfigInspect(t *testing.T) {
 }
 
 func TestConfigList(t *testing.T) {
-	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
-
 	defer setupTest(t)()
 	d := swarm.NewSwarm(t, testEnv)
 	defer d.Stop(t)
@@ -126,8 +123,6 @@ func createConfig(ctx context.Context, t *testing.T, client client.APIClient, na
 }
 
 func TestConfigsCreateAndDelete(t *testing.T) {
-	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
-
 	defer setupTest(t)()
 	d := swarm.NewSwarm(t, testEnv)
 	defer d.Stop(t)
@@ -164,8 +159,6 @@ func TestConfigsCreateAndDelete(t *testing.T) {
 }
 
 func TestConfigsUpdate(t *testing.T) {
-	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
-
 	defer setupTest(t)()
 	d := swarm.NewSwarm(t, testEnv)
 	defer d.Stop(t)
@@ -216,7 +209,6 @@ func TestConfigsUpdate(t *testing.T) {
 }
 
 func TestTemplatedConfig(t *testing.T) {
-	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
 	d := swarm.NewSwarm(t, testEnv)
 	defer d.Stop(t)
 	c := d.NewClientT(t)
@@ -316,12 +308,14 @@ func TestTemplatedConfig(t *testing.T) {
 		"this is a config\n"
 	assertAttachedStream(t, attach, expect)
 
-	attach = swarm.ExecTask(t, d, tasks[0], types.ExecConfig{
-		Cmd:          []string{"mount"},
-		AttachStdout: true,
-		AttachStderr: true,
-	})
-	assertAttachedStream(t, attach, "tmpfs on /templated_config type tmpfs")
+	if runtime.GOOS != "windows" {
+		attach = swarm.ExecTask(t, d, tasks[0], types.ExecConfig{
+			Cmd:          []string{"mount"},
+			AttachStdout: true,
+			AttachStderr: true,
+		})
+		assertAttachedStream(t, attach, "tmpfs on /templated_config type tmpfs")
+	}
 }
 
 // Test case for 28884
