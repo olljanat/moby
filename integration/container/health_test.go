@@ -17,20 +17,28 @@ import (
 // TestHealthCheckWorkdir verifies that health-checks inherit the containers'
 // working-dir.
 func TestHealthCheckWorkdir(t *testing.T) {
-	skip.If(t, testEnv.OSType == "windows", "FIXME")
 	defer setupTest(t)()
 	ctx := context.Background()
 	client := testEnv.APIClient()
+	testCmd := []string{"CMD-SHELL", "if [ \"$PWD\" = \"/foo\" ]; then exit 0; else exit 1; fi;"}
+	interval := 50 * time.Millisecond
+	timeout := 100 * time.Millisecond
 
+	// Windows always run CMD-SHELL using cmd /S /C no matter what is set as default shell
+	if testEnv.OSType == "windows" {
+		testCmd = []string{"CMD-SHELL", "if \"%CD%\" == \"C:\foo\" (exit 0) else (exit 1)"}
+		interval = time.Second
+		timeout = 10 * time.Second
+	}
 	cID := container.Run(ctx, t, client, container.WithTty(true), container.WithWorkingDir("/foo"), func(c *container.TestContainerConfig) {
 		c.Config.Healthcheck = &containertypes.HealthConfig{
-			Test:     []string{"CMD-SHELL", "if [ \"$PWD\" = \"/foo\" ]; then exit 0; else exit 1; fi;"},
-			Interval: 50 * time.Millisecond,
+			Test:     testCmd,
+			Interval: interval,
 			Retries:  3,
 		}
 	})
 
-	poll.WaitOn(t, pollForHealthStatus(ctx, client, cID, types.Healthy), poll.WithDelay(100*time.Millisecond))
+	poll.WaitOn(t, pollForHealthStatus(ctx, client, cID, types.Healthy), poll.WithDelay(timeout))
 }
 
 // GitHub #37263
