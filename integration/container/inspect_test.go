@@ -17,7 +17,7 @@ import (
 )
 
 func TestInspectCpusetInConfigPre120(t *testing.T) {
-	skip.If(t, testEnv.DaemonInfo.OSType == "windows" || !testEnv.DaemonInfo.CPUSet)
+	skip.If(t, !testEnv.DaemonInfo.CPUSet)
 
 	defer setupTest(t)()
 	client := request.NewAPIClient(t, client.WithVersion("1.19"))

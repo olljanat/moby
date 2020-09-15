@@ -1,5 +1,3 @@
-// +build windows
-
 package requirement // import "github.com/docker/docker/integration/internal/requirement"
 
 func overlayFSSupported() bool {

@@ -9,14 +9,12 @@ import (
 	"github.com/docker/docker/integration/internal/container"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/poll"
-	"gotest.tools/v3/skip"
 )
 
 // TestStopContainerWithTimeout checks that ContainerStop with
 // a timeout works as documented, i.e. in case of negative timeout
 // waiting is not limited (issue #35311).
 func TestStopContainerWithTimeout(t *testing.T) {
-	skip.If(t, testEnv.OSType == "windows")
 	defer setupTest(t)()
 	client := testEnv.APIClient()
 	ctx := context.Background()

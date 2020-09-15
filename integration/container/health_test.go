@@ -17,7 +17,6 @@ import (
 // TestHealthCheckWorkdir verifies that health-checks inherit the containers'
 // working-dir.
 func TestHealthCheckWorkdir(t *testing.T) {
-	skip.If(t, testEnv.OSType == "windows", "FIXME")
 	defer setupTest(t)()
 	ctx := context.Background()
 	client := testEnv.APIClient()
