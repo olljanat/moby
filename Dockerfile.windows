@@ -167,6 +167,7 @@ SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPref
 
 ARG GO_VERSION=1.13.15
 ARG GOTESTSUM_COMMIT=v0.3.5
+ARG CONTAINERD_COMMIT=v1.4.1
 
 # Environment variable notes:
 #  - GO_VERSION must be consistent with 'Dockerfile' used by Linux.
@@ -176,7 +177,8 @@ ENV GO_VERSION=${GO_VERSION} `
     GOPATH=C:\gopath `
     GO111MODULE=off `
     FROM_DOCKERFILE=1 `
-    GOTESTSUM_COMMIT=${GOTESTSUM_COMMIT}
+    GOTESTSUM_COMMIT=${GOTESTSUM_COMMIT} `
+    CONTAINERD_COMMIT=${CONTAINERD_COMMIT}
 
 RUN `
   Function Test-Nano() { `
@@ -210,7 +212,7 @@ RUN `
     } `
   } `
   `
-  setx /M PATH $('C:\git\cmd;C:\git\usr\bin;'+$Env:PATH+';C:\gcc\bin;C:\go\bin'); `
+  setx /M PATH $('C:\git\cmd;C:\git\usr\bin;'+$Env:PATH+';C:\gcc\bin;C:\go\bin;C:\containerd\bin'); `
   `
   Write-Host INFO: Downloading git...; `
   $location='https://www.nuget.org/api/v2/package/GitForWindows/'+$Env:GIT_VERSION; `
@@ -275,6 +277,22 @@ RUN `
   } `
   `
   Build-GoTestSum
+
+RUN `
+  Function Build-ContainerD() { `
+    New-Item -Path C:\containerd -ItemType Directory; `
+    Write-Host "INFO: Building containerd version $Env:CONTAINERD_COMMIT in C:\containerd"; `
+    $Env:GO111MODULE = 'on'; `
+    $Env:GOBIN = 'C:\containerd\bin'; `
+    &go get -buildmode=exe "https://github.com/containerd/containerd@${Env:CONTAINERD_COMMIT}"; `
+    $Env:GO111MODULE = 'off'; `
+    if ($LASTEXITCODE -ne 0) {  `
+      Throw '"containerd build failed..."'; `
+    } `
+    Write-Host "INFO:     Build done for containerd..."; `
+  } `
+  `
+  Build-ContainerD
 
 # Make PowerShell the default entrypoint
 ENTRYPOINT ["powershell.exe"]

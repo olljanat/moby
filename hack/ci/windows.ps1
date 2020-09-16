@@ -130,7 +130,7 @@ Write-Host -ForegroundColor Red "-----------------------------------------------
 $SCRIPT_VER="05-Feb-2019 09:03 PDT" 
 $FinallyColour="Cyan"
 
-#$env:DOCKER_DUT_DEBUG="yes" # Comment out to not be in debug mode
+$env:DOCKER_DUT_DEBUG="yes" # Comment out to not be in debug mode
 #$env:SKIP_UNIT_TESTS="yes"
 #$env:SKIP_VALIDATION_TESTS="yes"
 #$env:SKIP_ZAP_DUT=""
@@ -142,6 +142,8 @@ $FinallyColour="Cyan"
 #$env:WINDOWS_BASE_IMAGE=""
 #$env:SKIP_COPY_GO="yes"
 #$env:INTEGRATION_TESTFLAGS="-test.v"
+$env:DOCKER_DUT_EXPERIMENTAL="yes"
+$env:DOCKER_WINDOWS_CONTAINERD_RUNTIME=1
 
 Function Nuke-Everything {
     $ErrorActionPreference = 'SilentlyContinue'
@@ -606,6 +608,18 @@ Try {
         $dutArgs += "-D"
     }
 
+    # Arguments: Are we starting the daemon under test in experimental mode?
+    if (-not ("$env:DOCKER_DUT_EXPERIMENTAL" -eq "")) {
+        Write-Host -ForegroundColor Green "INFO: Running the daemon under test in experimental mode"
+        $dutArgs += "--experimental"
+    }
+
+    # Arguments: Are we starting the daemon under test in ContainerD mode?
+    if (-not ("$env:DOCKER_WINDOWS_CONTAINERD_RUNTIME" -eq "")) {
+        Write-Host -ForegroundColor Green "INFO: Running the daemon under test in ContainerD mode"
+        $dutArgs += "--containerd \\.\pipe\containerd-containerd"
+    }
+
     # Arguments: Are we starting the daemon under test with Hyper-V containers as the default isolation?
     if (-not ("$env:DOCKER_DUT_HYPERV" -eq "")) {
         Write-Host -ForegroundColor Green "INFO: Running the daemon under test with Hyper-V containers as the default"
@@ -637,7 +651,7 @@ Try {
     Start-Process "$env:TEMP\binary\dockerd-$COMMITHASH" `
                   -ArgumentList $dutArgs `
                   -RedirectStandardOutput "$env:TEMP\dut.out" `
-                  -RedirectStandardError "$env:TEMP\dut.err" 
+                  -RedirectStandardError "$env:TEMP\dut.err"
     Write-Host -ForegroundColor Green "INFO: Process started successfully."
     $daemonStarted=1
 
