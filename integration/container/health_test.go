@@ -21,6 +21,13 @@ func TestHealthCheckWorkdir(t *testing.T) {
 	ctx := context.Background()
 	client := testEnv.APIClient()
 
+	test := []string{"CMD-SHELL", "if [ \"$PWD\" = \"/foo\" ]; then exit 0; else exit 1; fi;"}
+	timeout := 100 * time.Millisecond
+	if testEnv.OSType == "windows" {
+		test = []string{"CMD-SHELL", "if [ \"$PWD\" = \"C:/foo\" ]; then exit 0; else exit 1; fi;"}
+		timeout = 10 * time.Second
+	}
+
 	cID := container.Run(ctx, t, client, container.WithTty(true), container.WithWorkingDir("/foo"), func(c *container.TestContainerConfig) {
 		c.Config.Healthcheck = &containertypes.HealthConfig{
 			Test:     []string{"CMD-SHELL", "if [ \"$PWD\" = \"/foo\" ]; then exit 0; else exit 1; fi;"},
@@ -29,7 +36,7 @@ func TestHealthCheckWorkdir(t *testing.T) {
 		}
 	})
 
-	poll.WaitOn(t, pollForHealthStatus(ctx, client, cID, types.Healthy), poll.WithDelay(100*time.Millisecond))
+	poll.WaitOn(t, pollForHealthStatus(ctx, client, cID, types.Healthy), poll.WithDelay(timeout))
 }
 
 // GitHub #37263

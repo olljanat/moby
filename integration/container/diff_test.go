@@ -10,9 +10,11 @@ import (
 	"github.com/docker/docker/pkg/archive"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/poll"
+	"gotest.tools/v3/skip"
 )
 
 func TestDiff(t *testing.T) {
+	skip.If(t, testEnv.OSType == "windows", "FIXME")
 	defer setupTest(t)()
 	client := testEnv.APIClient()
 	ctx := context.Background()

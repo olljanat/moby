@@ -117,7 +117,11 @@ func TestExec(t *testing.T) {
 	assert.NilError(t, err)
 	out := string(r)
 	assert.NilError(t, err)
-	assert.Assert(t, is.Contains(out, "PWD=/tmp"), "exec command not running in expected /tmp working directory")
+	expected := "PWD=/tmp"
+	if testEnv.OSType == "windows" {
+		expected = "PWD=C:/tmp"
+	}
+	assert.Assert(t, is.Contains(out, expected), "exec command not running in expected /tmp working directory")
 	assert.Assert(t, is.Contains(out, "FOO=BAR"), "exec command not running with expected environment variable FOO")
 }
 

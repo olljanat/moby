@@ -35,7 +35,7 @@ func TestCopyFromContainerPathDoesNotExist(t *testing.T) {
 
 func TestCopyFromContainerPathIsNotDir(t *testing.T) {
 	defer setupTest(t)()
-
+	skip.If(t, testEnv.OSType == "windows")
 	ctx := context.Background()
 	apiclient := testEnv.APIClient()
 	cid := container.Create(ctx, t, apiclient)
@@ -59,7 +59,7 @@ func TestCopyToContainerPathDoesNotExist(t *testing.T) {
 
 func TestCopyToContainerPathIsNotDir(t *testing.T) {
 	defer setupTest(t)()
-
+	skip.If(t, testEnv.OSType == "windows")
 	ctx := context.Background()
 	apiclient := testEnv.APIClient()
 	cid := container.Create(ctx, t, apiclient)

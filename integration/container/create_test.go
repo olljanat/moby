@@ -134,6 +134,8 @@ func TestCreateWithInvalidEnv(t *testing.T) {
 
 // Test case for #30166 (target was not validated)
 func TestCreateTmpfsMountsTarget(t *testing.T) {
+	skip.If(t, testEnv.DaemonInfo.OSType == "windows")
+
 	defer setupTest(t)()
 	client := testEnv.APIClient()
 
