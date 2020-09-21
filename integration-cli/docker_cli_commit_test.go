@@ -10,6 +10,7 @@ import (
 )
 
 func (s *DockerSuite) TestCommitAfterContainerIsDone(c *testing.T) {
+	skip.If(c, RuntimeIsWindowsContainerd(), "FIXME: Broken on Windows + containerd combination")
 	out := cli.DockerCmd(c, "run", "-i", "-a", "stdin", "busybox", "echo", "foo").Combined()
 
 	cleanedContainerID := strings.TrimSpace(out)
