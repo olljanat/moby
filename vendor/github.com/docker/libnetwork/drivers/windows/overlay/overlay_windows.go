@@ -87,9 +87,21 @@ func (d *driver) restoreHNSNetworks() error {
 			continue
 		}
 
-		logrus.Infof("Restoring overlay network: %s", v.Name)
 		n := d.convertToOverlayNetwork(&v)
-		d.addNetwork(n)
+
+		// Restoring only ingress network back to docker
+		// if v.Name == "moby-ingress" {
+		if n.subnets[0].vni == 4096 {
+			logrus.Infof("Restoring overlay network: %s", v.Name)
+			d.addNetwork(n)
+		}
+
+		// moby/moby#40998 Deleting networks from HNS instead of restoring them to Docker
+		logrus.Infof("Deleting overlay network %s from HNS", v.Name)
+		_, err = hcsshim.HNSNetworkRequest("DELETE", v.Name, "")
+		if err != nil {
+			logrus.Errorf("Deleting overlay network %s from HNS failed: %s", v.Name, err.Error())
+		}
 
 		//
 		// We assume that any network will be recreated on daemon restart

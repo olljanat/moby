@@ -305,6 +305,8 @@ func (d *driver) createHnsNetwork(n *network) error {
 			return err
 		}
 
+		// TODO: Check that ID 4096 exist
+
 		subnet.Policies = append(subnet.Policies, vsidPolicy)
 		subnets = append(subnets, subnet)
 	}
