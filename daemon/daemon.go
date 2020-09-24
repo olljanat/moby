@@ -710,9 +710,9 @@ func (daemon *Daemon) DaemonLeavesCluster(daemonShutdown bool) {
 		} else {
 			logrus.Warnf("failed to initiate ingress network removal: %v", err)
 		}
-	}
 
-	daemon.attachmentStore.ClearAttachments()
+		daemon.attachmentStore.ClearAttachments()
+	}
 }
 
 // setClusterProvider sets a component for querying the current cluster state.
