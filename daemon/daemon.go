@@ -671,9 +671,17 @@ func (daemon *Daemon) DaemonJoinsCluster(clusterProvider cluster.Provider) {
 
 // DaemonLeavesCluster informs the daemon has left the cluster
 func (daemon *Daemon) DaemonLeavesCluster(daemonShutdown bool) {
-	// Daemon is in charge of removing the attachable networks with
-	// connected containers when the node leaves the swarm
-	daemon.clearAttachableNetworks()
+
+	// On Windows networks are stored to HNS and we want to keep
+	// label com.docker.network.windowsshim.hnsid stored locally
+	// during daemon shutdown so we are able to map those networks
+	// when daemon starts next time
+	if !(runtime.GOOS == "windows" && daemonShutdown == true) {
+		// Daemon is in charge of removing the attachable networks with
+		// connected containers when the node leaves the swarm
+		daemon.clearAttachableNetworks()
+	}
+
 	// We no longer need the cluster provider, stop it now so that
 	// the network agent will stop listening to cluster events.
 	daemon.setClusterProvider(nil)
