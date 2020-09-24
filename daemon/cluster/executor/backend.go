@@ -52,7 +52,7 @@ type Backend interface {
 	Containers(config *types.ContainerListOptions) ([]*types.Container, error)
 	SetNetworkBootstrapKeys([]*networktypes.EncryptionKey) error
 	DaemonJoinsCluster(provider cluster.Provider)
-	DaemonLeavesCluster()
+	DaemonLeavesCluster(daemonShutdown bool)
 	IsSwarmCompatible() error
 	SubscribeToEvents(since, until time.Time, filter filters.Args) ([]events.Message, chan interface{})
 	UnsubscribeFromEvents(listener chan interface{})

@@ -423,7 +423,7 @@ func (c *Cluster) Leave(force bool) error {
 	if err := clearPersistentState(c.root); err != nil {
 		return err
 	}
-	c.config.Backend.DaemonLeavesCluster()
+	c.config.Backend.DaemonLeavesCluster(false)
 	return nil
 }
 

@@ -670,7 +670,7 @@ func (daemon *Daemon) DaemonJoinsCluster(clusterProvider cluster.Provider) {
 }
 
 // DaemonLeavesCluster informs the daemon has left the cluster
-func (daemon *Daemon) DaemonLeavesCluster() {
+func (daemon *Daemon) DaemonLeavesCluster(daemonShutdown bool) {
 	// Daemon is in charge of removing the attachable networks with
 	// connected containers when the node leaves the swarm
 	daemon.clearAttachableNetworks()
@@ -679,23 +679,29 @@ func (daemon *Daemon) DaemonLeavesCluster() {
 	daemon.setClusterProvider(nil)
 	// Wait for the networking cluster agent to stop
 	daemon.netController.AgentStopWait()
-	// Daemon is in charge of removing the ingress network when the
-	// node leaves the swarm. Wait for job to be done or timeout.
-	// This is called also on graceful daemon shutdown. We need to
-	// wait, because the ingress release has to happen before the
-	// network controller is stopped.
 
-	if done, err := daemon.ReleaseIngress(); err == nil {
-		timeout := time.NewTimer(5 * time.Second)
-		defer timeout.Stop()
+	// On Windows releasing ingress triggers network card reconfiguring
+	// which we want only do if when we are really leaving from cluster.
+	// That why we skip ingress release here and let HNS keep its configuration.
+	if !(runtime.GOOS == "windows" && daemonShutdown == true) {
+		// Daemon is in charge of removing the ingress network when the
+		// node leaves the swarm. Wait for job to be done or timeout.
+		// This is called also on graceful daemon shutdown. We need to
+		// wait, because the ingress release has to happen before the
+		// network controller is stopped.
 
-		select {
-		case <-done:
-		case <-timeout.C:
-			logrus.Warn("timeout while waiting for ingress network removal")
+		if done, err := daemon.ReleaseIngress(); err == nil {
+			timeout := time.NewTimer(5 * time.Second)
+			defer timeout.Stop()
+
+			select {
+			case <-done:
+			case <-timeout.C:
+				logrus.Warn("timeout while waiting for ingress network removal")
+			}
+		} else {
+			logrus.Warnf("failed to initiate ingress network removal: %v", err)
 		}
-	} else {
-		logrus.Warnf("failed to initiate ingress network removal: %v", err)
 	}
 
 	daemon.attachmentStore.ClearAttachments()
@@ -1229,7 +1235,7 @@ func (daemon *Daemon) Shutdown() error {
 	// If we are part of a cluster, clean up cluster's stuff
 	if daemon.clusterProvider != nil {
 		logrus.Debugf("start clean shutdown of cluster resources...")
-		daemon.DaemonLeavesCluster()
+		daemon.DaemonLeavesCluster(true)
 	}
 
 	daemon.cleanupMetricsPlugins()
