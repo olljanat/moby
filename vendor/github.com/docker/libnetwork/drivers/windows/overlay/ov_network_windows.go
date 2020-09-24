@@ -234,29 +234,29 @@ func (d *driver) network(nid string) *network {
 	return d.networks[nid]
 }
 
-// func (n *network) restoreNetworkEndpoints() error {
-// 	logrus.Infof("Restoring endpoints for overlay network: %s", n.id)
+func (n *network) restoreNetworkEndpoints() error {
+	logrus.Infof("Restoring endpoints for overlay network: %s", n.id)
 
-// 	hnsresponse, err := hcsshim.HNSListEndpointRequest("GET", "", "")
-// 	if err != nil {
-// 		return err
-// 	}
+	hnsresponse, err := hcsshim.HNSListEndpointRequest()
+	if err != nil {
+		return err
+	}
 
-// 	for _, endpoint := range hnsresponse {
-// 		if endpoint.VirtualNetwork != n.hnsID {
-// 			continue
-// 		}
+	for _, endpoint := range hnsresponse {
+		if endpoint.VirtualNetwork != n.hnsID {
+			continue
+		}
 
-// 		ep := n.convertToOverlayEndpoint(&endpoint)
+		ep := n.convertToOverlayEndpoint(&endpoint)
 
-// 		if ep != nil {
-// 			logrus.Debugf("Restored endpoint:%s Remote:%t", ep.id, ep.remote)
-// 			n.addEndpoint(ep)
-// 		}
-// 	}
+		if ep != nil {
+			logrus.Debugf("Restored endpoint:%s Remote:%t", ep.id, ep.remote)
+			n.addEndpoint(ep)
+		}
+	}
 
-// 	return nil
-// }
+	return nil
+}
 
 func (n *network) convertToOverlayEndpoint(v *hcsshim.HNSEndpoint) *endpoint {
 	ep := &endpoint{

@@ -91,11 +91,7 @@ func (d *driver) restoreHNSNetworks() error {
 		n := d.convertToOverlayNetwork(&v)
 		d.addNetwork(n)
 
-		//
-		// We assume that any network will be recreated on daemon restart
-		// and therefore don't restore hns endpoints for now
-		//
-		//n.restoreNetworkEndpoints()
+		n.restoreNetworkEndpoints()
 	}
 
 	return nil
