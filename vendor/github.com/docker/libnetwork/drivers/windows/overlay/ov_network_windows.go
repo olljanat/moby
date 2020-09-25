@@ -81,15 +81,6 @@ func (d *driver) CreateNetwork(id string, option map[string]interface{}, nInfo d
 	staleNetworks = make([]string, 0)
 	vnis := make([]uint32, 0, len(ipV4Data))
 
-	existingNetwork := d.network(id)
-	if existingNetwork != nil {
-		logrus.Debugf("Network preexists. Deleting %s", id)
-		err := d.DeleteNetwork(id)
-		if err != nil {
-			logrus.Errorf("Error deleting stale network %s", err.Error())
-		}
-	}
-
 	n := &network{
 		id:         id,
 		driver:     d,
@@ -102,6 +93,12 @@ func (d *driver) CreateNetwork(id string, option map[string]interface{}, nInfo d
 
 	if !ok {
 		return fmt.Errorf("Unknown generic data option")
+	}
+
+	existingNetwork := d.network(id)
+	if existingNetwork != nil {
+		logrus.Debugf("Network preexists. Using it id: %s hnsID: %s", id, existingNetwork.hnsID)
+		genData["com.docker.network.windowsshim.hnsid"] = existingNetwork.hnsID
 	}
 
 	for label, value := range genData {
