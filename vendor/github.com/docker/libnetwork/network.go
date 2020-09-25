@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -1001,6 +1002,7 @@ func (n *network) delete(force bool, rmLBEndpoint bool) error {
 	if err != nil {
 		return &UnknownNetworkError{name: name, id: id}
 	}
+	logrus.Debugf("libnetwork: delete network, name: %s id: %s ingress: %s force: %s rmLBEndpoint: %s", n.name, n.id, strconv.FormatBool(n.ingress), strconv.FormatBool(force), strconv.FormatBool(rmLBEndpoint))
 
 	// Only remove ingress on force removal or explicit LB endpoint removal
 	if n.ingress && !force && !rmLBEndpoint {
