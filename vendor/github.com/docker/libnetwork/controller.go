@@ -245,7 +245,7 @@ func New(cfgOptions ...config.Option) (NetworkController, error) {
 	c.reservePools()
 
 	// Cleanup resources
-	// c.sandboxCleanup(c.cfg.ActiveSandboxes)
+	c.sandboxCleanup(c.cfg.ActiveSandboxes)
 	c.cleanupLocalEndpoints()
 	c.networkCleanup()
 
