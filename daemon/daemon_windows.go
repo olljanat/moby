@@ -658,3 +658,12 @@ func setupResolvConf(config *config.Config) {
 func (daemon *Daemon) RawSysInfo(quiet bool) *sysinfo.SysInfo {
 	return sysinfo.New(quiet)
 }
+
+// Windows does not wait services to stop on shutdown/reboot
+// so to keep logic consistent with service restart
+// we skip whole cleanup routine here and handle everything
+// on service start.
+func (daemon *Daemon) Shutdown() error {
+	daemon.shutdown = true
+	return nil
+}
