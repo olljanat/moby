@@ -99,6 +99,7 @@ func (d *driver) CreateNetwork(id string, option map[string]interface{}, nInfo d
 	if existingNetwork != nil {
 		logrus.Debugf("Network preexists. Using it id: %s hnsID: %s", id, existingNetwork.hnsID)
 		genData["com.docker.network.windowsshim.hnsid"] = existingNetwork.hnsID
+		return nil
 	}
 
 	for label, value := range genData {
