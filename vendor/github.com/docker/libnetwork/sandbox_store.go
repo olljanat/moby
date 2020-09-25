@@ -209,6 +209,7 @@ func (c *controller) sandboxCleanup(activeSandboxes map[string]interface{}) {
 
 	for _, kvo := range kvol {
 		sbs := kvo.(*sbState)
+		logrus.Debugf("sandboxCleanup() found sandbox from store. id: %v controller: %v containerID: %v", sbs.ID, sbs.c, sbs.Cid)
 
 		sb := &sandbox{
 			id:                 sbs.ID,
@@ -274,7 +275,7 @@ func (c *controller) sandboxCleanup(activeSandboxes map[string]interface{}) {
 		}
 
 		if _, ok := activeSandboxes[sb.ID()]; !ok {
-			logrus.Infof("Removing stale sandbox %s (%s)", sb.id, sb.containerID)
+			logrus.Infof("Removing stale sandbox %s (%s) sd.ID(): %s", sb.id, sb.containerID, sb.ID())
 			if err := sb.delete(true); err != nil {
 				logrus.Errorf("Failed to delete sandbox %s while trying to cleanup: %v", sb.id, err)
 			}
