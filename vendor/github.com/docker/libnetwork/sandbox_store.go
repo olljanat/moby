@@ -2,6 +2,7 @@ package libnetwork
 
 import (
 	"encoding/json"
+	"runtime"
 	"sync"
 
 	"github.com/docker/libnetwork/datastore"
@@ -275,6 +276,10 @@ func (c *controller) sandboxCleanup(activeSandboxes map[string]interface{}) {
 		}
 
 		if _, ok := activeSandboxes[sb.ID()]; !ok {
+			// On Windows HNS handles ingress create and removal so we skip it here.
+			if runtime.GOOS == "windows" && sb.ID() == "ingress_sbox" {
+				continue
+			}
 			logrus.Infof("Removing stale sandbox %s (%s) sd.ID(): %s", sb.id, sb.containerID, sb.ID())
 			if err := sb.delete(true); err != nil {
 				logrus.Errorf("Failed to delete sandbox %s while trying to cleanup: %v", sb.id, err)
