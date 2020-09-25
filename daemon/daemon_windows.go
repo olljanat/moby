@@ -271,7 +271,9 @@ func configureMaxThreads(config *config.Config) error {
 }
 
 func (daemon *Daemon) initNetworkController(config *config.Config, activeSandboxes map[string]interface{}) (libnetwork.NetworkController, error) {
-	netOptions, err := daemon.networkOptions(config, nil, activeSandboxes)
+	ingressSandbox := make(map[string]interface{})
+	ingressSandbox["ingress_sbox"] = ""
+	netOptions, err := daemon.networkOptions(config, nil, ingressSandbox)
 	if err != nil {
 		return nil, err
 	}
