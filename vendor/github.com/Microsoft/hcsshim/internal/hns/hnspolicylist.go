@@ -21,6 +21,7 @@ type ELBPolicy struct {
 	VIPs      []string `json:"VIPs,omitempty"`
 	ILB       bool     `json:"ILB,omitempty"`
 	DSR       bool     `json:"IsDSR,omitempty"`
+	NatPool   string   `json:"NatPool,omitempty"`
 }
 
 // LBPolicy is a structure defining schema for LoadBalancing based Policy
@@ -150,6 +151,7 @@ func AddLoadBalancer(endpoints []HNSEndpoint, isILB bool, sourceVIP, vip string,
 	elbPolicy := &ELBPolicy{
 		SourceVIP: sourceVIP,
 		ILB:       isILB,
+		NatPool:   "",
 	}
 
 	if len(vip) > 0 {
