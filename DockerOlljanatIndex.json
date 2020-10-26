@@ -4,7 +4,7 @@
                                 "alias":  "19.03"
                             },
                      "19.03":  {
-                                   "version":  "19.03.12-olljanat1"
+                                   "version":  "19.03.13-olljanat1"
                                }
                  },
     "versions":  {
@@ -28,6 +28,13 @@
                                     "size":  "77260680",
                                     "notes":  "Contains Docker EE for use with Windows Server.",
                                     "sha256":  "723666111F26BD6EF3772157CEFE432DD3A55192EB08827F38072483D0A8B0F7"
+                                },
+                     "19.03.13-olljanat1":  {
+                                    "date":  "2020-10-26T11:50:01",
+                                    "url":  "https://github.com/olljanat/moby/releases/download/19.03.13-olljanat1/docker-19-03-13-olljanat1.zip",
+                                    "size":  "90159444",
+                                    "notes":  "Contains Docker EE for use with Windows Server.",
+                                    "sha256":  "31110CAD3BC5F0BA275FAD0052A74F0780EC6DD66BBA11BF756E2253EAEB386A"
                                 }
                 }
 }
