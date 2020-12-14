@@ -1,3 +1,5 @@
+// +build !no_swarmkit
+
 package swarm // import "github.com/docker/docker/api/server/router/swarm"
 
 import (

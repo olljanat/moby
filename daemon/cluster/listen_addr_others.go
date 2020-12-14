@@ -1,4 +1,4 @@
-// +build !linux
+// +build !linux !no_swarmkit
 
 package cluster // import "github.com/docker/docker/daemon/cluster"
 

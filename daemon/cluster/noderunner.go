@@ -1,3 +1,5 @@
+// +build !no_swarmkit
+
 package cluster // import "github.com/docker/docker/daemon/cluster"
 
 import (
