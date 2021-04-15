@@ -40,7 +40,9 @@ func (p *Plugin) InitSpec(execRoot string) (*specs.Spec, error) {
 			Type:        "bind",
 			Options:     []string{"rbind", "rw", "rshared"},
 		})
-		s.Linux.RootfsPropagation = "rshared"
+		if os.Getenv("DOCKER_RAMDISK") == "" {
+			s.Linux.RootfsPropagation = "rshared"
+		}
 	}
 
 	mounts := append(p.PluginObj.Config.Mounts, types.PluginMount{
