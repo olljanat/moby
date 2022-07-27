@@ -320,6 +320,7 @@ func (daemon *Daemon) createNetwork(create types.NetworkCreateRequest, id string
 	}
 
 	nwOptions := []libnetwork.NetworkOption{
+		libnetwork.NetworkOptionDisableIPv4(create.DisableIPv4),
 		libnetwork.NetworkOptionEnableIPv6(create.EnableIPv6),
 		libnetwork.NetworkOptionDriverOpts(create.Options),
 		libnetwork.NetworkOptionLabels(create.Labels),
@@ -595,6 +596,7 @@ func buildNetworkResource(nw libnetwork.Network) types.NetworkResource {
 	r.Created = info.Created()
 	r.Scope = info.Scope()
 	r.Driver = nw.Type()
+	r.DisableIPv4 = info.IPv4Disabled()
 	r.EnableIPv6 = info.IPv6Enabled()
 	r.Internal = info.Internal()
 	r.Attachable = info.Attachable()

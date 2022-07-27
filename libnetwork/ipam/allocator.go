@@ -469,10 +469,13 @@ func (a *Allocator) RequestAddress(poolID string, prefAddress net.IP, opts map[s
 		return nil, nil, types.NotFoundErrorf("cannot find address pool for poolID:%s", poolID)
 	}
 
-	if prefAddress != nil && !p.Pool.Contains(prefAddress) {
-		aSpace.Unlock()
-		return nil, nil, ipamapi.ErrIPOutOfRange
-	}
+	/*
+		// Allow fe80::1 as gateway
+		if prefAddress != nil && !p.Pool.Contains(prefAddress) {
+			aSpace.Unlock()
+			return nil, nil, ipamapi.ErrIPOutOfRange
+		}
+	*/
 
 	c := p
 	for c.Range != nil {

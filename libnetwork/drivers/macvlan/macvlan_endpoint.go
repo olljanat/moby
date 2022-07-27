@@ -34,7 +34,7 @@ func (d *driver) CreateEndpoint(nid, eid string, ifInfo driverapi.InterfaceInfo,
 		addrv6: ifInfo.AddressIPv6(),
 		mac:    ifInfo.MacAddress(),
 	}
-	if ep.addr == nil {
+	if ep.addr == nil && ep.addrv6 == nil {
 		return fmt.Errorf("create endpoint was not passed an IP address")
 	}
 	if ep.mac == nil {

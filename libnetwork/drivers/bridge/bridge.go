@@ -496,17 +496,19 @@ func (c *networkConfiguration) processIPAM(id string, ipamV4Data, ipamV6Data []d
 		return types.ForbiddenErrorf("bridge driver doesn't support multiple subnets")
 	}
 
-	if len(ipamV4Data) == 0 {
-		return types.BadRequestErrorf("bridge network %s requires ipv4 configuration", id)
-	}
+	/*
+			if len(ipamV4Data) == 0 {
+				return types.BadRequestErrorf("bridge network %s requires ipv4 configuration", id)
+			}
 
-	if ipamV4Data[0].Gateway != nil {
-		c.AddressIPv4 = types.GetIPNetCopy(ipamV4Data[0].Gateway)
-	}
+		if ipamV4Data[0].Gateway != nil {
+			c.AddressIPv4 = types.GetIPNetCopy(ipamV4Data[0].Gateway)
+		}
 
-	if gw, ok := ipamV4Data[0].AuxAddresses[DefaultGatewayV4AuxKey]; ok {
-		c.DefaultGatewayIPv4 = gw.IP
-	}
+		if gw, ok := ipamV4Data[0].AuxAddresses[DefaultGatewayV4AuxKey]; ok {
+			c.DefaultGatewayIPv4 = gw.IP
+		}
+	*/
 
 	if len(ipamV6Data) > 0 {
 		c.AddressIPv6 = ipamV6Data[0].Pool
@@ -600,9 +602,11 @@ func (d *driver) DecodeTableEntry(tablename string, key string, value []byte) (s
 
 // Create a new network using bridge plugin
 func (d *driver) CreateNetwork(id string, option map[string]interface{}, nInfo driverapi.NetworkInfo, ipV4Data, ipV6Data []driverapi.IPAMData) error {
-	if len(ipV4Data) == 0 || ipV4Data[0].Pool.String() == "0.0.0.0/0" {
-		return types.BadRequestErrorf("ipv4 pool is empty")
-	}
+	/*
+		if len(ipV4Data) == 0 || ipV4Data[0].Pool.String() == "0.0.0.0/0" {
+			return types.BadRequestErrorf("ipv4 pool is empty")
+		}
+	*/
 	// Sanity checks
 	d.Lock()
 	if _, ok := d.networks[id]; ok {
@@ -1076,7 +1080,11 @@ func (d *driver) CreateEndpoint(nid, eid string, ifInfo driverapi.InterfaceInfo,
 
 	// Set the sbox's MAC if not provided. If specified, use the one configured by user, otherwise generate one based on IP.
 	if endpoint.macAddress == nil {
-		endpoint.macAddress = electMacAddress(epConfig, endpoint.addr.IP)
+		electWithIP := endpoint.addr
+		if electWithIP == nil {
+			electWithIP = endpoint.addrv6
+		}
+		endpoint.macAddress = electMacAddress(epConfig, electWithIP.IP)
 		if err = ifInfo.SetMacAddress(endpoint.macAddress); err != nil {
 			return err
 		}

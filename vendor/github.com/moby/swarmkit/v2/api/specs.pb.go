@@ -1079,6 +1079,8 @@ type NetworkSpec struct {
 	Annotations Annotations `protobuf:"bytes,1,opt,name=annotations,proto3" json:"annotations"`
 	// DriverConfig specific configuration consumed by the network driver.
 	DriverConfig *Driver `protobuf:"bytes,2,opt,name=driver_config,json=driverConfig,proto3" json:"driver_config,omitempty"`
+	// Ipv4Disabled disables support for IPv4 on the network.
+	Ipv4Disabled bool `protobuf:"varint,3,opt,name=ipv4_disabled,json=ipv4Disabled,proto3" json:"ipv4_disabled,omitempty"`
 	// IPv6Enabled enables support for IPv6 on the network.
 	Ipv6Enabled bool `protobuf:"varint,3,opt,name=ipv6_enabled,json=ipv6Enabled,proto3" json:"ipv6_enabled,omitempty"`
 	// internal restricts external access to the network. This may be
@@ -3405,6 +3407,16 @@ func (m *NetworkSpec) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		}
 		i--
 		dAtA[i] = 0x20
+	}
+	if m.Ipv4Disabled {
+		i--
+		if m.Ipv4Disabled {
+			dAtA[i] = 0
+		} else {
+			dAtA[i] = 1
+		}
+		i--
+		dAtA[i] = 0x18
 	}
 	if m.Ipv6Enabled {
 		i--

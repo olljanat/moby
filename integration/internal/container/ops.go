@@ -127,6 +127,8 @@ func WithIPv4(network, ip string) func(*TestContainerConfig) {
 	}
 }
 
+// FixMe: Test case with IPv4 disabled here
+
 // WithIPv6 sets the specified ip6 for the specified network of the container
 func WithIPv6(network, ip string) func(*TestContainerConfig) {
 	return func(c *TestContainerConfig) {

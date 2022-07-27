@@ -26,12 +26,13 @@ func networkFromGRPC(n *swarmapi.Network) types.Network {
 		network := types.Network{
 			ID: n.ID,
 			Spec: types.NetworkSpec{
-				IPv6Enabled: n.Spec.Ipv6Enabled,
-				Internal:    n.Spec.Internal,
-				Attachable:  n.Spec.Attachable,
-				Ingress:     IsIngressNetwork(n),
-				IPAMOptions: ipamFromGRPC(n.Spec.IPAM),
-				Scope:       netconst.SwarmScope,
+				IPv4Disabled: n.Spec.Ipv4Disabled,
+				IPv6Enabled:  n.Spec.Ipv6Enabled,
+				Internal:     n.Spec.Internal,
+				Attachable:   n.Spec.Attachable,
+				Ingress:      IsIngressNetwork(n),
+				IPAMOptions:  ipamFromGRPC(n.Spec.IPAM),
+				Scope:        netconst.SwarmScope,
 			},
 			IPAMOptions: ipamFromGRPC(n.IPAM),
 		}
@@ -158,15 +159,16 @@ func BasicNetworkFromGRPC(n swarmapi.Network) basictypes.NetworkResource {
 	}
 
 	nr := basictypes.NetworkResource{
-		ID:         n.ID,
-		Name:       n.Spec.Annotations.Name,
-		Scope:      netconst.SwarmScope,
-		EnableIPv6: spec.Ipv6Enabled,
-		IPAM:       ipam,
-		Internal:   spec.Internal,
-		Attachable: spec.Attachable,
-		Ingress:    IsIngressNetwork(&n),
-		Labels:     n.Spec.Annotations.Labels,
+		ID:          n.ID,
+		Name:        n.Spec.Annotations.Name,
+		Scope:       netconst.SwarmScope,
+		DisableIPv4: spec.Ipv4Disabled,
+		EnableIPv6:  spec.Ipv6Enabled,
+		IPAM:        ipam,
+		Internal:    spec.Internal,
+		Attachable:  spec.Attachable,
+		Ingress:     IsIngressNetwork(&n),
+		Labels:      n.Spec.Annotations.Labels,
 	}
 	nr.Created, _ = gogotypes.TimestampFromProto(n.Meta.CreatedAt)
 
@@ -195,10 +197,11 @@ func BasicNetworkCreateToGRPC(create basictypes.NetworkCreateRequest) swarmapi.N
 			Name:    create.Driver,
 			Options: create.Options,
 		},
-		Ipv6Enabled: create.EnableIPv6,
-		Internal:    create.Internal,
-		Attachable:  create.Attachable,
-		Ingress:     create.Ingress,
+		Ipv4Disabled: create.DisableIPv4,
+		Ipv6Enabled:  create.EnableIPv6,
+		Internal:     create.Internal,
+		Attachable:   create.Attachable,
+		Ingress:      create.Ingress,
 	}
 	if create.IPAM != nil {
 		driver := create.IPAM.Driver

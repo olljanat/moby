@@ -52,8 +52,8 @@ func setupBridgeIPv4(config *networkConfiguration, i *bridgeInterface) error {
 	}
 
 	// Store bridge network and default gateway
-	i.bridgeIPv4 = config.AddressIPv4
-	i.gatewayIPv4 = config.AddressIPv4.IP
+	// i.bridgeIPv4 = config.AddressIPv4
+	// i.gatewayIPv4 = config.AddressIPv4.IP
 
 	return nil
 }
