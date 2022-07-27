@@ -60,6 +60,7 @@ type configuration struct {
 type networkConfiguration struct {
 	ID                   string
 	BridgeName           string
+	DisableIPv4           bool
 	EnableIPv6           bool
 	EnableIPMasquerade   bool
 	EnableICC            bool
@@ -219,7 +220,7 @@ func (c *networkConfiguration) Validate() error {
 	}
 
 	// If bridge v4 subnet is specified
-	if c.AddressIPv4 != nil {
+	if c.DisableIPv4 && c.AddressIPv4 != nil {
 		// If default gw is specified, it must be part of bridge subnet
 		if c.DefaultGatewayIPv4 != nil {
 			if !c.AddressIPv4.Contains(c.DefaultGatewayIPv4) {
@@ -280,6 +281,11 @@ func (c *networkConfiguration) fromLabels(labels map[string]string) error {
 			c.BridgeName = value
 		case netlabel.DriverMTU:
 			if c.Mtu, err = strconv.Atoi(value); err != nil {
+				return parseErr(label, value, err.Error())
+			}
+		// FixMe: Decide 
+		case netlabel.DisableIPv4:
+			if c.DisableIPv4, err = strconv.ParseBool(value); err != nil {
 				return parseErr(label, value, err.Error())
 			}
 		case netlabel.EnableIPv6:
@@ -533,17 +539,19 @@ func (c *networkConfiguration) processIPAM(id string, ipamV4Data, ipamV6Data []d
 		return types.ForbiddenErrorf("bridge driver doesn't support multiple subnets")
 	}
 
+	/* FixMe: Add proper logic for this
 	if len(ipamV4Data) == 0 {
 		return types.InvalidParameterErrorf("bridge network %s requires ipv4 configuration", id)
 	}
 
-	if ipamV4Data[0].Gateway != nil {
-		c.AddressIPv4 = types.GetIPNetCopy(ipamV4Data[0].Gateway)
-	}
+		if ipamV4Data[0].Gateway != nil {
+			c.AddressIPv4 = types.GetIPNetCopy(ipamV4Data[0].Gateway)
+		}
 
-	if gw, ok := ipamV4Data[0].AuxAddresses[DefaultGatewayV4AuxKey]; ok {
-		c.DefaultGatewayIPv4 = gw.IP
-	}
+		if gw, ok := ipamV4Data[0].AuxAddresses[DefaultGatewayV4AuxKey]; ok {
+			c.DefaultGatewayIPv4 = gw.IP
+		}
+	*/
 
 	if len(ipamV6Data) > 0 {
 		c.AddressIPv6 = ipamV6Data[0].Pool
@@ -632,9 +640,11 @@ func (d *driver) DecodeTableEntry(tablename string, key string, value []byte) (s
 
 // Create a new network using bridge plugin
 func (d *driver) CreateNetwork(id string, option map[string]interface{}, nInfo driverapi.NetworkInfo, ipV4Data, ipV6Data []driverapi.IPAMData) error {
+	/* FixMe
 	if len(ipV4Data) == 0 || ipV4Data[0].Pool.String() == "0.0.0.0/0" {
 		return types.InvalidParameterErrorf("ipv4 pool is empty")
 	}
+	*/
 	// Sanity checks
 	d.Lock()
 	if _, ok := d.networks[id]; ok {
@@ -769,7 +779,9 @@ func (d *driver) createNetwork(config *networkConfiguration) (err error) {
 	}
 
 	// Even if a bridge exists try to setup IPv4.
-	bridgeSetup.queueStep(setupBridgeIPv4)
+	if config.DisableIPv4 {
+		bridgeSetup.queueStep(setupBridgeIPv4)
+	}
 
 	enableIPv6Forwarding := config.EnableIPv6 && d.config.EnableIPForwarding
 
@@ -1067,7 +1079,11 @@ func (d *driver) CreateEndpoint(nid, eid string, ifInfo driverapi.InterfaceInfo,
 
 	// Set the sbox's MAC if not provided. If specified, use the one configured by user, otherwise generate one based on IP.
 	if endpoint.macAddress == nil {
-		endpoint.macAddress = electMacAddress(epConfig, endpoint.addr.IP)
+		electWithIP := endpoint.addr
+		if electWithIP == nil {
+			electWithIP = endpoint.addrv6
+		}
+		endpoint.macAddress = electMacAddress(epConfig, electWithIP.IP)
 		if err = ifInfo.SetMacAddress(endpoint.macAddress); err != nil {
 			return err
 		}

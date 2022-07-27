@@ -85,6 +85,7 @@ type Network struct {
 type NetworkSpec struct {
 	Annotations
 	DriverConfiguration *Driver                  `json:",omitempty"`
+	IPv4Disabled        bool                     `json:",omitempty"`
 	IPv6Enabled         bool                     `json:",omitempty"`
 	Internal            bool                     `json:",omitempty"`
 	Attachable          bool                     `json:",omitempty"`

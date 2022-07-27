@@ -90,6 +90,70 @@ func (sb *Sandbox) setupDefaultGW() error {
 	}
 
 	return nil
+
+	/*
+		// check if the container already has a GW endpoint
+		if ep := sb.getEndpointInGWNetwork(); ep != nil {
+			return nil
+		}
+
+		c := sb.controller
+
+		// Look for default gw network. In case of error (includes not found),
+		// retry and create it if needed in a serialized execution.
+		n, err := c.NetworkByName(libnGWNetwork)
+		if err != nil {
+			if n, err = c.defaultGwNetwork(); err != nil {
+				return err
+			}
+		}
+
+		createOptions := []EndpointOption{CreateOptionAnonymous()}
+
+		var gwName string
+		if len(sb.containerID) <= gwEPlen {
+			gwName = "gateway_" + sb.containerID
+		} else {
+			gwName = "gateway_" + sb.id[:gwEPlen]
+		}
+
+		sbLabels := sb.Labels()
+
+		if sbLabels[netlabel.PortMap] != nil {
+			createOptions = append(createOptions, CreateOptionPortMapping(sbLabels[netlabel.PortMap].([]types.PortBinding)))
+		}
+
+		if sbLabels[netlabel.ExposedPorts] != nil {
+			createOptions = append(createOptions, CreateOptionExposedPorts(sbLabels[netlabel.ExposedPorts].([]types.TransportPort)))
+		}
+
+		epOption := getPlatformOption()
+		if epOption != nil {
+			createOptions = append(createOptions, epOption)
+		}
+
+		newEp, err := n.CreateEndpoint(gwName, createOptions...)
+		if err != nil {
+			return fmt.Errorf("container %s: endpoint create on GW Network failed: %v", sb.containerID, err)
+		}
+
+		defer func() {
+			if err != nil {
+				if err2 := newEp.Delete(true); err2 != nil {
+					logrus.Warnf("Failed to remove gw endpoint for container %s after failing to join the gateway network: %v",
+						sb.containerID, err2)
+				}
+			}
+		}()
+
+		epLocal := newEp.(*endpoint)
+
+		if err = epLocal.sbJoin(sb); err != nil {
+			return fmt.Errorf("container %s: endpoint join on GW Network failed: %v", sb.containerID, err)
+		}
+
+		return nil
+	*/
 }
 
 // If present, detach and remove the endpoint connecting the sandbox to the default gw network.

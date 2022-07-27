@@ -28,9 +28,11 @@ func (d *driver) CreateNetwork(nid string, option map[string]interface{}, nInfo 
 			ipvlanKernelVer, ipvlanMajorVer, kv.Kernel, kv.Major, kv.Minor)
 	}
 	// reject a null v4 network
-	if len(ipV4Data) == 0 || ipV4Data[0].Pool.String() == "0.0.0.0/0" {
-		return fmt.Errorf("ipv4 pool is empty")
-	}
+	/*
+		if len(ipV4Data) == 0 || ipV4Data[0].Pool.String() == "0.0.0.0/0" {
+			return fmt.Errorf("ipv4 pool is empty")
+		}
+	*/
 	// parse and validate the config and bind to networkConfiguration
 	config, err := parseNetworkOptions(nid, option)
 	if err != nil {

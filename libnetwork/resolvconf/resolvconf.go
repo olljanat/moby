@@ -43,6 +43,7 @@ func GetSpecific(path string) (*File, error) {
 	return &File{Content: resolv, Hash: []byte(hash)}, nil
 }
 
+// FixMe: Ipv4 disabled here
 // FilterResolvDNS cleans up the config in resolvConf.  It has two main jobs:
 //  1. It looks for localhost (127.*|::1) entries in the provided
 //     resolv.conf, removing local nameserver entries, and, if the resulting

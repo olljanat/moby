@@ -184,6 +184,7 @@ type Network struct {
 	ipamV6Config     []*IpamConf
 	ipamV4Info       []*IpamInfo
 	ipamV6Info       []*IpamInfo
+	disableIPv4      bool
 	enableIPv6       bool
 	postIPv6         bool
 	epCnt            *endpointCnt
@@ -391,6 +392,7 @@ func (n *Network) validateConfiguration() error {
 
 // applyConfigurationTo applies network specific configurations.
 func (n *Network) applyConfigurationTo(to *Network) error {
+	to.disableIPv4 = n.disableIPv4
 	to.enableIPv6 = n.enableIPv6
 	if len(n.labels) > 0 {
 		to.labels = make(map[string]string, len(n.labels))
@@ -440,6 +442,7 @@ func (n *Network) CopyTo(o datastore.KVObject) error {
 	dstN.scope = n.scope
 	dstN.dynamic = n.dynamic
 	dstN.ipamType = n.ipamType
+	dstN.disableIPv4 = n.disableIPv4
 	dstN.enableIPv6 = n.enableIPv6
 	dstN.persist = n.persist
 	dstN.postIPv6 = n.postIPv6
@@ -529,6 +532,7 @@ func (n *Network) MarshalJSON() ([]byte, error) {
 	netMap["ipamType"] = n.ipamType
 	netMap["ipamOptions"] = n.ipamOptions
 	netMap["addrSpace"] = n.addrSpace
+	netMap["disableIPv4"] = n.disableIPv4
 	netMap["enableIPv6"] = n.enableIPv6
 	if n.generic != nil {
 		netMap["generic"] = n.generic
@@ -591,6 +595,7 @@ func (n *Network) UnmarshalJSON(b []byte) (err error) {
 		}
 	}
 	n.networkType = netMap["networkType"].(string)
+//	n.disableIPv4 = netMap["disableIPv4"].(bool)
 	n.enableIPv6 = netMap["enableIPv6"].(bool)
 
 	// if we weren't unmarshaling to netMap we could simply set n.labels
@@ -692,6 +697,10 @@ func (n *Network) UnmarshalJSON(b []byte) (err error) {
 	if !n.enableIPv6 {
 		n.enableIPv6 = len(n.ipamV6Info) > 0
 	}
+	// Reconcile old networks with the recently added `--disable-ipv4` flag
+	if !n.disableIPv4 {
+		n.disableIPv4 = len(n.ipamV4Info) > 0
+	}
 	return nil
 }
 
@@ -706,6 +715,9 @@ func NetworkOptionGeneric(generic map[string]interface{}) NetworkOption {
 	return func(n *Network) {
 		if n.generic == nil {
 			n.generic = make(map[string]interface{})
+		}
+		if val, ok := generic[netlabel.DisableIPv4]; ok {
+			n.disableIPv4 = val.(bool)
 		}
 		if val, ok := generic[netlabel.EnableIPv6]; ok {
 			n.enableIPv6 = val.(bool)
@@ -731,6 +743,17 @@ func NetworkOptionIngress(ingress bool) NetworkOption {
 func NetworkOptionPersist(persist bool) NetworkOption {
 	return func(n *Network) {
 		n.persist = persist
+	}
+}
+
+// NetworkOptionDisableIPv4 returns an option setter to explicitly disable IPv4
+func NetworkOptionDisableIPv4(disableIPv4 bool) NetworkOption {
+	return func(n *Network) {
+		if n.generic == nil {
+			n.generic = make(map[string]interface{})
+		}
+		n.disableIPv4 = disableIPv4
+		n.generic[netlabel.DisableIPv4] = disableIPv4
 	}
 }
 
@@ -1179,7 +1202,7 @@ func (n *Network) createEndpoint(name string, options ...EndpointOption) (*Endpo
 		ep.ipamOptions[netlabel.MacAddress] = ep.iface.mac.String()
 	}
 
-	if err = ep.assignAddress(ipam, true, n.enableIPv6 && !n.postIPv6); err != nil {
+	if err = ep.assignAddress(ipam, !n.disableIPv4, n.enableIPv6 && !n.postIPv6); err != nil {
 		return nil, err
 	}
 	defer func() {
@@ -1212,7 +1235,7 @@ func (n *Network) createEndpoint(name string, options ...EndpointOption) (*Endpo
 		}
 	}()
 
-	if err = ep.assignAddress(ipam, false, n.enableIPv6 && n.postIPv6); err != nil {
+	if err = ep.assignAddress(ipam, !n.disableIPv4, n.enableIPv6 && n.postIPv6); err != nil {
 		return nil, err
 	}
 
@@ -1489,16 +1512,18 @@ func (n *Network) ipamAllocate() error {
 		}
 	}
 
-	err = n.ipamAllocateVersion(4, ipam)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
+	if !n.disableIPv4 {
+		err = n.ipamAllocateVersion(4, ipam)
 		if err != nil {
-			n.ipamReleaseVersion(4, ipam)
+			return err
 		}
-	}()
+
+		defer func() {
+			if err != nil {
+				n.ipamReleaseVersion(4, ipam)
+			}
+		}()
+	}
 
 	if !n.enableIPv6 {
 		return nil
@@ -1868,6 +1893,13 @@ func (n *Network) Dynamic() bool {
 	return n.dynamic
 }
 
+func (n *Network) IPv4Disabled() bool {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	return n.disableIPv4
+}
+
 func (n *Network) IPv6Enabled() bool {
 	n.mu.Lock()
 	defer n.mu.Unlock()
@@ -1965,6 +1997,7 @@ func (n *Network) ResolveName(ctx context.Context, req string, ipType int) ([]ne
 	req = strings.ToLower(req)
 	ipSet, ok := sr.svcMap.Get(req)
 
+	// FixMe: Similar for IPv4 disable ?
 	if ipType == types.IPv6 {
 		// If the name resolved to v4 address then its a valid name in
 		// the docker network domain. If the network is not v6 enabled

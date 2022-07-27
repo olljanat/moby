@@ -565,9 +565,11 @@ func (ep *Endpoint) sbJoin(sb *Sandbox, options ...EndpointOption) (err error) {
 		return nil
 	}
 
+	/* FixMe: Only if IPv4 is disabled
 	if sb.needDefaultGW() && sb.getEndpointInGWNetwork() == nil {
 		return sb.setupDefaultGW()
 	}
+	*/
 
 	currentExtEp := sb.getGatewayEndpoint()
 	// Enable upstream forwarding if the sandbox gained external connectivity.

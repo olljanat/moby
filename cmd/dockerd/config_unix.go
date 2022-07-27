@@ -31,6 +31,7 @@ func installConfigFlags(conf *config.Config, flags *pflag.FlagSet) error {
 	flags.BoolVar(&conf.BridgeConfig.EnableIP6Tables, "ip6tables", false, "Enable addition of ip6tables rules (experimental)")
 	flags.BoolVar(&conf.BridgeConfig.EnableIPForward, "ip-forward", true, "Enable net.ipv4.ip_forward")
 	flags.BoolVar(&conf.BridgeConfig.EnableIPMasq, "ip-masq", true, "Enable IP masquerading")
+	flags.BoolVar(&conf.BridgeConfig.DisableIPv4, "disable-ipv4", false, "Enable IPv4 networking")
 	flags.BoolVar(&conf.BridgeConfig.EnableIPv6, "ipv6", false, "Enable IPv6 networking")
 	flags.StringVar(&conf.BridgeConfig.IP, "bip", "", "Specify network bridge IP")
 	flags.StringVarP(&conf.BridgeConfig.Iface, "bridge", "b", "", "Attach containers to a network bridge")

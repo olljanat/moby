@@ -55,6 +55,7 @@ type DefaultBridgeConfig struct {
 	commonBridgeConfig
 
 	// Fields below here are platform specific.
+	DisableIPv4                  bool   `json:"disable-ipv4,omitempty"`
 	EnableIPv6                  bool   `json:"ipv6,omitempty"`
 	FixedCIDRv6                 string `json:"fixed-cidr-v6,omitempty"`
 	MTU                         int    `json:"mtu,omitempty"`

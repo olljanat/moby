@@ -626,6 +626,7 @@ func (c *containerConfig) networkCreateRequest(name string) (clustertypes.Networ
 		Internal:   na.Network.Spec.Internal,
 		Attachable: na.Network.Spec.Attachable,
 		Ingress:    convert.IsIngressNetwork(na.Network),
+		DisableIPv4:    na.Network.Spec.Ipv4Disabled,
 		EnableIPv6: na.Network.Spec.Ipv6Enabled,
 		Scope:      scope.Swarm,
 	}
