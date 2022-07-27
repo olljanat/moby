@@ -1082,9 +1082,9 @@ func (ep *endpoint) assignAddress(ipam ipamapi.Ipam, assignIPv4, assignIPv6 bool
 		}
 	}
 
-	if assignIPv6 {
-		err = ep.assignAddressVersion(6, ipam)
-	}
+	// if assignIPv6 {
+	err = ep.assignAddressVersion(6, ipam)
+	// 	}
 
 	return err
 }

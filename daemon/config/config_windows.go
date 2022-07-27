@@ -14,6 +14,9 @@ const (
 // configuration.
 type BridgeConfig struct {
 	commonBridgeConfig
+
+	EnableIPv6  bool   `json:"ipv6,omitempty"`
+	FixedCIDRv6 string `json:"fixed-cidr-v6,omitempty"`
 }
 
 // Config defines the configuration of a docker daemon.
