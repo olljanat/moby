@@ -9,14 +9,14 @@
 # To build: docker build -t busybox .
 # To publish: Needs someone with publishing rights
 ARG WINDOWS_BASE_IMAGE=mcr.microsoft.com/windows/servercore
-ARG WINDOWS_BASE_IMAGE_TAG=ltsc2019
+ARG WINDOWS_BASE_IMAGE_TAG=ltsc2022
 ARG BUSYBOX_VERSION=FRP-3329-gcf0fa4d13
 
 # Checksum taken from https://frippery.org/files/busybox/SHA256SUM
 ARG BUSYBOX_SHA256SUM=bfaeb88638e580fc522a68e69072e305308f9747563e51fa085eec60ca39a5ae
 
 FROM ${WINDOWS_BASE_IMAGE}:${WINDOWS_BASE_IMAGE_TAG}
-RUN mkdir C:\tmp && mkdir C:\bin
+RUN mkdir C:\tmp && mkdir C:\bin && echo "works!!"
 ARG BUSYBOX_VERSION
 ARG BUSYBOX_SHA256SUM
 ADD https://frippery.org/files/busybox/busybox-w32-${BUSYBOX_VERSION}.exe /bin/busybox.exe
@@ -27,4 +27,5 @@ RUN powershell \
 
 RUN setx /M PATH "C:\bin;%PATH%"
 RUN powershell busybox.exe --list ^|%{$nul = cmd /c mklink C:\bin\$_.exe busybox.exe}
+RUN ping -n 30 127.0.0.1
 CMD ["sh"]
