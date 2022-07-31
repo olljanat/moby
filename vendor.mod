@@ -22,7 +22,7 @@ require (
 	github.com/containerd/containerd v1.6.6
 	github.com/containerd/continuity v0.3.0
 	github.com/containerd/fifo v1.0.0
-	github.com/containerd/nerdctl v0.22.0
+	github.com/containerd/nerdctl v0.22.1-0.20220730140626-03483b3e2c57
 	github.com/containerd/typeurl v1.0.2
 	github.com/containernetworking/cni v1.1.2 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2
