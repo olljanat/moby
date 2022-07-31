@@ -311,6 +311,7 @@ jobs:
           if (Get-Service docker -ErrorAction SilentlyContinue) {
             $dockerVersion = (docker version -f "{{.Server.Version}}")
             Write-Host "Current installed Docker version: $dockerVersion"
+            echo "HOST_DOCKER_VERSION=$dockerVersion" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
             # remove service
             Stop-Service -Force -Name docker
             Remove-Service -Name docker
@@ -361,6 +362,10 @@ jobs:
               "--register-service"
           Write-Host "Starting service"
           Start-Service -Name docker
+          $dockerVersionNew = (docker version -f "{{.Server.Version}}")
+          If ($dockerVersionNew -eq $env:HOST_DOCKER_VERSION -or (-not $env:HOST_DOCKER_VERSION)) {
+            Throw "Something went wrong, running Docker version: $dockerVersionNew is same as host Docker version $($env:HOST_DOCKER_VERSION)"
+          }
           Write-Host "Service started successfully!"
       -
         name: Waiting for test daemon to start
