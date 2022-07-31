@@ -31,6 +31,9 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	containerderrdefs "github.com/containerd/containerd/errdefs"
+	"github.com/containerd/nerdctl/pkg/netutil"
 )
 
 // PredefinedNetworkError is returned when user tries to create predefined network that already exists.
@@ -295,92 +298,121 @@ func (daemon *Daemon) createNetwork(create types.NetworkCreateRequest, id string
 		return nil, PredefinedNetworkError(create.Name)
 	}
 
-	var warning string
-	nw, err := daemon.GetNetworkByName(create.Name)
-	if err != nil {
-		if _, ok := err.(libnetwork.ErrNoSuchNetwork); !ok {
-			return nil, err
-		}
-	}
-	if nw != nil {
-		// check if user defined CheckDuplicate, if set true, return err
-		// otherwise prepare a warning message
-		if create.CheckDuplicate {
-			if !agent || nw.Info().Dynamic() {
-				return nil, libnetwork.NetworkNameError(create.Name)
+	/*
+		var warning string
+		nw, err := daemon.GetNetworkByName(create.Name)
+		if err != nil {
+			if _, ok := err.(libnetwork.ErrNoSuchNetwork); !ok {
+				return nil, err
 			}
 		}
-		warning = fmt.Sprintf("Network with name %s (id : %s) already exists", nw.Name(), nw.ID())
-	}
+		if nw != nil {
+			// check if user defined CheckDuplicate, if set true, return err
+			// otherwise prepare a warning message
+			if create.CheckDuplicate {
+				if !agent || nw.Info().Dynamic() {
+					return nil, libnetwork.NetworkNameError(create.Name)
+				}
+			}
+			warning = fmt.Sprintf("Network with name %s (id : %s) already exists", nw.Name(), nw.ID())
+		}
 
-	c := daemon.netController
-	driver := create.Driver
-	if driver == "" {
-		driver = c.Config().Daemon.DefaultDriver
-	}
+		c := daemon.netController
+		driver := create.Driver
+		if driver == "" {
+			driver = c.Config().Daemon.DefaultDriver
+		}
 
-	nwOptions := []libnetwork.NetworkOption{
-		libnetwork.NetworkOptionEnableIPv6(create.EnableIPv6),
-		libnetwork.NetworkOptionDriverOpts(create.Options),
-		libnetwork.NetworkOptionLabels(create.Labels),
-		libnetwork.NetworkOptionAttachable(create.Attachable),
-		libnetwork.NetworkOptionIngress(create.Ingress),
-		libnetwork.NetworkOptionScope(create.Scope),
-	}
+		nwOptions := []libnetwork.NetworkOption{
+			libnetwork.NetworkOptionEnableIPv6(create.EnableIPv6),
+			libnetwork.NetworkOptionDriverOpts(create.Options),
+			libnetwork.NetworkOptionLabels(create.Labels),
+			libnetwork.NetworkOptionAttachable(create.Attachable),
+			libnetwork.NetworkOptionIngress(create.Ingress),
+			libnetwork.NetworkOptionScope(create.Scope),
+		}
 
-	if create.ConfigOnly {
-		nwOptions = append(nwOptions, libnetwork.NetworkOptionConfigOnly())
-	}
+		if create.ConfigOnly {
+			nwOptions = append(nwOptions, libnetwork.NetworkOptionConfigOnly())
+		}
 
-	if create.IPAM != nil {
-		ipam := create.IPAM
-		v4Conf, v6Conf, err := getIpamConfig(ipam.Config)
+		if create.IPAM != nil {
+			ipam := create.IPAM
+			v4Conf, v6Conf, err := getIpamConfig(ipam.Config)
+			if err != nil {
+				return nil, err
+			}
+			nwOptions = append(nwOptions, libnetwork.NetworkOptionIpam(ipam.Driver, "", v4Conf, v6Conf, ipam.Options))
+		}
+
+		if create.Internal {
+			nwOptions = append(nwOptions, libnetwork.NetworkOptionInternalNetwork())
+		}
+		if agent {
+			nwOptions = append(nwOptions, libnetwork.NetworkOptionDynamic())
+			nwOptions = append(nwOptions, libnetwork.NetworkOptionPersist(false))
+		}
+
+		if create.ConfigFrom != nil {
+			nwOptions = append(nwOptions, libnetwork.NetworkOptionConfigFrom(create.ConfigFrom.Network))
+		}
+
+		if agent && driver == "overlay" {
+			nodeIP, exists := daemon.GetAttachmentStore().GetIPForNetwork(id)
+			if !exists {
+				return nil, fmt.Errorf("failed to find a load balancer IP to use for network: %v", id)
+			}
+
+			nwOptions = append(nwOptions, libnetwork.NetworkOptionLBEndpoint(nodeIP))
+		}
+
+		n, err := c.NewNetwork(driver, create.Name, id, nwOptions...)
 		if err != nil {
+			if _, ok := err.(libnetwork.ErrDataStoreNotInitialized); ok {
+				//nolint: revive
+				return nil, errors.New("This node is not a swarm manager. Use \"docker swarm init\" or \"docker swarm join\" to connect this node to swarm and try again.")
+			}
 			return nil, err
 		}
-		nwOptions = append(nwOptions, libnetwork.NetworkOptionIpam(ipam.Driver, "", v4Conf, v6Conf, ipam.Options))
-	}
 
-	if create.Internal {
-		nwOptions = append(nwOptions, libnetwork.NetworkOptionInternalNetwork())
-	}
-	if agent {
-		nwOptions = append(nwOptions, libnetwork.NetworkOptionDynamic())
-		nwOptions = append(nwOptions, libnetwork.NetworkOptionPersist(false))
-	}
-
-	if create.ConfigFrom != nil {
-		nwOptions = append(nwOptions, libnetwork.NetworkOptionConfigFrom(create.ConfigFrom.Network))
-	}
-
-	if agent && driver == "overlay" {
-		nodeIP, exists := daemon.GetAttachmentStore().GetIPForNetwork(id)
-		if !exists {
-			return nil, fmt.Errorf("failed to find a load balancer IP to use for network: %v", id)
+		daemon.pluginRefCount(driver, driverapi.NetworkPluginEndpointType, plugingetter.Acquire)
+		if create.IPAM != nil {
+			daemon.pluginRefCount(create.IPAM.Driver, ipamapi.PluginEndpointType, plugingetter.Acquire)
 		}
+		daemon.LogNetworkEvent(n, "create")
 
-		nwOptions = append(nwOptions, libnetwork.NetworkOptionLBEndpoint(nodeIP))
-	}
+		return &types.NetworkCreateResponse{
+			ID:      n.ID(),
+			Warning: warning,
+		}, nil
+	*/
 
-	n, err := c.NewNetwork(driver, create.Name, id, nwOptions...)
+	cniPath := `C:\Program Files\containerd\cni\bin\nat.exe`
+	cniNetconfpath := `C:\Program Files\containerd\cni\conf\nerdctl-nat.conflist`
+
+	e, err := netutil.NewCNIEnv(cniPath, cniNetconfpath)
 	if err != nil {
-		if _, ok := err.(libnetwork.ErrDataStoreNotInitialized); ok {
-			//nolint: revive
-			return nil, errors.New("This node is not a swarm manager. Use \"docker swarm init\" or \"docker swarm join\" to connect this node to swarm and try again.")
+		return err
+	}
+	createOpts := netutil.CreateOptions{
+		Name:        create.Name,
+		Driver:      create.Driver,
+		Options:     nil,
+		IPAMDriver:  nil,
+		IPAMOptions: nil,
+		Subnet:      nil,
+		Gateway:     nil,
+		IPRange:     nil,
+		Labels:      nil,
+	}
+	net, err := e.CreateNetwork(createOpts)
+	if err != nil {
+		if containerderrdefs.IsAlreadyExists(err) {
+			return nil, fmt.Errorf("network with name %s already exists", create.Name)
 		}
-		return nil, err
+		return err
 	}
-
-	daemon.pluginRefCount(driver, driverapi.NetworkPluginEndpointType, plugingetter.Acquire)
-	if create.IPAM != nil {
-		daemon.pluginRefCount(create.IPAM.Driver, ipamapi.PluginEndpointType, plugingetter.Acquire)
-	}
-	daemon.LogNetworkEvent(n, "create")
-
-	return &types.NetworkCreateResponse{
-		ID:      n.ID(),
-		Warning: warning,
-	}, nil
+	return nil, fmt.Errorf("%s\n", *net.NerdctlID)
 }
 
 func (daemon *Daemon) pluginRefCount(driver, capability string, mode int) {
