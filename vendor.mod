@@ -22,7 +22,9 @@ require (
 	github.com/containerd/containerd v1.6.6
 	github.com/containerd/continuity v0.3.0
 	github.com/containerd/fifo v1.0.0
+	github.com/containerd/nerdctl v0.22.0
 	github.com/containerd/typeurl v1.0.2
+	github.com/containernetworking/cni v1.1.2 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/creack/pty v1.1.11
 	github.com/deckarep/golang-set v0.0.0-20141123011944-ef32fa3046d9
@@ -96,6 +98,7 @@ require (
 	github.com/cilium/ebpf v0.7.0 // indirect
 	github.com/container-storage-interface/spec v1.5.0 // indirect
 	github.com/containerd/console v1.0.3 // indirect
+	github.com/containerd/go-cni v1.1.6 // indirect
 	github.com/containerd/go-runc v1.0.0 // indirect
 	github.com/containerd/stargz-snapshotter v0.11.3 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.11.3 // indirect
