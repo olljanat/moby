@@ -392,7 +392,7 @@ func (daemon *Daemon) createNetwork(create types.NetworkCreateRequest, id string
 
 	e, err := netutil.NewCNIEnv(cniPath, cniNetconfpath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	createOpts := netutil.CreateOptions{
 		Name:        create.Name,
@@ -410,7 +410,7 @@ func (daemon *Daemon) createNetwork(create types.NetworkCreateRequest, id string
 		if containerderrdefs.IsAlreadyExists(err) {
 			return nil, fmt.Errorf("network with name %s already exists", create.Name)
 		}
-		return err
+		return nil, err
 	}
 	return nil, fmt.Errorf("%s\n", *net.NerdctlID)
 }
