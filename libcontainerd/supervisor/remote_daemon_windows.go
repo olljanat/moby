@@ -7,13 +7,14 @@ import (
 )
 
 const (
-	grpcPipeName  = `\\.\pipe\containerd-containerd`
-	debugPipeName = `\\.\pipe\containerd-debug`
+	binaryName    = "containerd.exe"
+	GrpcPipeName  = `\\.\pipe\docker-containerd`
+	debugPipeName = `\\.\pipe\docker-containerd-debug`
 )
 
 func (r *remote) setDefaults() {
 	if r.GRPC.Address == "" {
-		r.GRPC.Address = grpcPipeName
+		r.GRPC.Address = GrpcPipeName
 	}
 	if r.Debug.Address == "" {
 		r.Debug.Address = debugPipeName

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -26,7 +27,6 @@ const (
 	shutdownTimeout         = 15 * time.Second
 	startupTimeout          = 15 * time.Second
 	configFile              = "containerd.toml"
-	binaryName              = "containerd"
 	pidFile                 = "containerd.pid"
 )
 
@@ -184,7 +184,17 @@ func (r *remote) startContainerd() error {
 		args = append(args, "--log-level", r.Debug.Level)
 	}
 
-	cmd := exec.Command(binaryName, args...)
+	// In Windows containerd was first adopted by other tools so make sure that we
+	// use only containerd.exe which is provided with Docker binaries.
+	binPath := binaryName
+	if runtime.GOOS == "windows" {
+		dockerdPath, err := os.Executable()
+		if err == nil {
+			binPath = filepath.Dir(dockerdPath) + `\` + binaryName
+		}
+	}
+
+	cmd := exec.Command(binPath, args...)
 	// redirect containerd logs to docker logs
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
