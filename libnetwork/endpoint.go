@@ -9,6 +9,7 @@ import (
 	"github.com/docker/docker/libnetwork/datastore"
 	"github.com/docker/docker/libnetwork/ipamapi"
 	"github.com/docker/docker/libnetwork/netlabel"
+	"github.com/docker/docker/libnetwork/netutils"
 	"github.com/docker/docker/libnetwork/options"
 	"github.com/docker/docker/libnetwork/types"
 	"github.com/sirupsen/logrus"
@@ -506,6 +507,11 @@ func (ep *Endpoint) sbJoin(sb *Sandbox, options ...EndpointOption) (err error) {
 			}
 		}
 	}()
+
+	// FixMe
+	if ep.exposedPorts != nil && ep.iface.mac == nil {
+		ep.iface.mac = netutils.GenerateMACFromIP(ep.iface.addr.IP)
+	}
 
 	// Load balancing endpoints should never have a default gateway nor
 	// should they alter the status of a network's default gateway
