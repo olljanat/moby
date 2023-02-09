@@ -8,6 +8,7 @@ import (
 
 	"github.com/docker/docker/libnetwork/driverapi"
 	"github.com/docker/docker/libnetwork/netlabel"
+	"github.com/docker/docker/libnetwork/netutils"
 	"github.com/docker/docker/libnetwork/ns"
 	"github.com/docker/docker/libnetwork/types"
 	"github.com/sirupsen/logrus"
@@ -27,6 +28,7 @@ func (d *driver) CreateEndpoint(nid, eid string, ifInfo driverapi.InterfaceInfo,
 	if ifInfo.MacAddress() != nil {
 		return fmt.Errorf("ipvlan interfaces do not support custom mac address assignment")
 	}
+
 	ep := &endpoint{
 		id:     eid,
 		nid:    nid,
@@ -51,6 +53,11 @@ func (d *driver) CreateEndpoint(nid, eid string, ifInfo driverapi.InterfaceInfo,
 				logrus.Warnf("ipvlan driver does not support port exposures")
 			}
 		}
+	}
+
+	ep.mac = netutils.GenerateMACFromIP(ep.addr.IP)
+	if err := ifInfo.SetMacAddress(ep.mac); err != nil {
+		return err
 	}
 
 	if err := d.storeUpdate(ep); err != nil {
