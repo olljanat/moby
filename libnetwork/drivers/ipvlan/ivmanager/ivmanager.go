@@ -1,6 +1,10 @@
 package ivmanager
 
 import (
+	"fmt"
+	"net"
+	"sync"
+
 	"github.com/docker/docker/libnetwork/datastore"
 	"github.com/docker/docker/libnetwork/discoverapi"
 	"github.com/docker/docker/libnetwork/driverapi"
@@ -9,7 +13,25 @@ import (
 
 const networkType = "ipvlan"
 
-type driver struct{}
+type networkTable map[string]*network
+
+type driver struct {
+	config   map[string]interface{}
+	networks networkTable
+	sync.Mutex
+}
+
+type subnet struct {
+	subnetIP *net.IPNet
+	gwIP     *net.IPNet
+}
+
+type network struct {
+	id      string
+	driver  *driver
+	subnets []*subnet
+	sync.Mutex
+}
 
 // Init registers a new instance of the ipvlan manager driver.
 //
@@ -21,18 +43,69 @@ func Init(dc driverapi.DriverCallback, config map[string]interface{}) error {
 // Register registers a new instance of the ipvlan manager driver.
 func Register(r driverapi.Registerer, config map[string]interface{}) error {
 	c := driverapi.Capability{
-		DataScope:         datastore.LocalScope,
+		DataScope:         datastore.GlobalScope,
 		ConnectivityScope: datastore.GlobalScope,
 	}
-	return r.RegisterDriver(networkType, &driver{}, c)
+
+	d := &driver{
+		networks: networkTable{},
+		config:   config,
+	}
+
+	return r.RegisterDriver(networkType, d, c)
 }
 
 func (d *driver) NetworkAllocate(id string, option map[string]string, ipV4Data, ipV6Data []driverapi.IPAMData) (map[string]string, error) {
-	return nil, types.NotImplementedErrorf("not implemented")
+	if id == "" {
+		return nil, fmt.Errorf("invalid network id for ipvlan network")
+	}
+
+	if ipV4Data == nil {
+		return nil, fmt.Errorf("empty ipv4 data passed during overlay network creation")
+	}
+
+	n := &network{
+		id:      id,
+		driver:  d,
+		subnets: []*subnet{},
+	}
+
+	opts := make(map[string]string)
+
+	for _, ipd := range ipV4Data {
+		s := &subnet{
+			subnetIP: ipd.Pool,
+			gwIP:     ipd.Gateway,
+		}
+		n.subnets = append(n.subnets, s)
+	}
+
+	d.Lock()
+	defer d.Unlock()
+	if _, ok := d.networks[id]; ok {
+		return nil, fmt.Errorf("network %s already exists", id)
+	}
+	d.networks[id] = n
+
+	return opts, nil
 }
 
 func (d *driver) NetworkFree(id string) error {
-	return types.NotImplementedErrorf("not implemented")
+	if id == "" {
+		return fmt.Errorf("invalid network id passed while freeing ipvlan network")
+	}
+
+	d.Lock()
+	defer d.Unlock()
+	_, ok := d.networks[id]
+
+	if !ok {
+		return fmt.Errorf("ipvlan network with id %s not found", id)
+	}
+
+	delete(d.networks, id)
+
+	return nil
 }
 
 func (d *driver) CreateNetwork(id string, option map[string]interface{}, nInfo driverapi.NetworkInfo, ipV4Data, ipV6Data []driverapi.IPAMData) error {
