@@ -21,6 +21,7 @@ import (
 	"sync"
 
 	"github.com/Microsoft/hcsshim"
+	"github.com/Microsoft/hcsshim/hcn"
 	"github.com/docker/docker/libnetwork/datastore"
 	"github.com/docker/docker/libnetwork/discoverapi"
 	"github.com/docker/docker/libnetwork/driverapi"
@@ -345,9 +346,30 @@ func (d *driver) CreateNetwork(id string, option map[string]interface{}, nInfo d
 			network.Policies = append(network.Policies, vsidPolicy)
 		}
 
-		if network.Name == "" {
-			network.Name = id
-		}
+		/*
+			isolationPolicy, err := json.Marshal(hcsshim.IsolationPolicy{
+				InDefaultIsolation: false,
+			})
+			if err != nil {
+				return err
+			}
+			network.Policies = append(network.Policies, isolationPolicy)
+
+			if network.Name == "" {
+				network.Name = id
+			}
+		*/
+
+		aclPolicy, err := json.Marshal(hcsshim.ACLPolicy{
+			Protocols:       "4",
+			Action:          hcn.ActionTypeAllow,
+			Direction:       hcn.DirectionTypeIn,
+			LocalAddresses:  "0.0.0.0/0",
+			RemoteAddresses: "0.0.0.0/0",
+			RuleType:        hcn.RuleTypeSwitch,
+			Priority:        1,
+		})
+		network.Policies = append(network.Policies, aclPolicy)
 
 		configurationb, err := json.Marshal(network)
 		if err != nil {
