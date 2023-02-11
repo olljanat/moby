@@ -979,17 +979,19 @@ func (m *Manager) becomeLeader(ctx context.Context) {
 
 		// Add Node entry for ourself, if one
 		// doesn't exist already.
-		freshCluster := nil == store.CreateNode(tx, managerNode(nodeID, m.config.Availability, clusterObj.VXLANUDPPort))
+		store.CreateNode(tx, managerNode(nodeID, m.config.Availability, clusterObj.VXLANUDPPort))
 
-		if freshCluster {
-			// This is a fresh swarm cluster. Add to store now any initial
-			// cluster resource, like the default ingress network which
-			// provides the routing mesh for this cluster.
-			log.G(ctx).Info("Creating default ingress network")
-			if err := store.CreateNetwork(tx, newIngressNetwork()); err != nil {
-				log.G(ctx).WithError(err).Error("failed to create default ingress network")
+		/*
+			if freshCluster {
+				// This is a fresh swarm cluster. Add to store now any initial
+				// cluster resource, like the default ingress network which
+				// provides the routing mesh for this cluster.
+				log.G(ctx).Info("Creating default ingress network")
+				if err := store.CreateNetwork(tx, newIngressNetwork()); err != nil {
+					log.G(ctx).WithError(err).Error("failed to create default ingress network")
+				}
 			}
-		}
+		*/
 		// Create now the static predefined if the store does not contain predefined
 		// networks like bridge/host node-local networks which
 		// are known to be present in each cluster node. This is needed
