@@ -21,6 +21,7 @@ import (
 	"sync"
 
 	"github.com/Microsoft/hcsshim"
+	"github.com/Microsoft/hcsshim/hns"
 	"github.com/docker/docker/libnetwork/datastore"
 	"github.com/docker/docker/libnetwork/discoverapi"
 	"github.com/docker/docker/libnetwork/driverapi"
@@ -343,6 +344,16 @@ func (d *driver) CreateNetwork(id string, option map[string]interface{}, nInfo d
 				return err
 			}
 			network.Policies = append(network.Policies, vsidPolicy)
+		}
+
+		if !config.EnableOutboundNat {
+			noNat, err := json.Marshal(hcsshim.OutboundNatPolicy{
+				Policy: hns.Policy{},
+			})
+			if err != nil {
+				return err
+			}
+			network.Policies = append(network.Policies, noNat)
 		}
 
 		if network.Name == "" {
