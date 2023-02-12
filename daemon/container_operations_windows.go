@@ -158,6 +158,7 @@ func enableIPOnPredefinedNetwork() bool {
 
 // serviceDiscoveryOnDefaultNetwork indicates if service discovery is supported on the default network
 func serviceDiscoveryOnDefaultNetwork() bool {
+	// FixMe: We should not use this on Swarm compatible mode
 	return true
 }
 

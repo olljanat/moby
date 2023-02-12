@@ -790,7 +790,8 @@ func buildCreateEndpointOptions(c *container.Container, n libnetwork.Network, ep
 		createOptions []libnetwork.EndpointOption
 	)
 
-	defaultNetName := runconfig.DefaultDaemonNetworkMode().NetworkName()
+	defaultNetName := "bridge"
+	// runconfig.DefaultDaemonNetworkMode().NetworkName()
 
 	if (!serviceDiscoveryOnDefaultNetwork() && n.Name() == defaultNetName) ||
 		c.NetworkSettings.IsAnonymousEndpoint {
@@ -862,7 +863,7 @@ func buildCreateEndpointOptions(c *container.Container, n libnetwork.Network, ep
 	// to which container was connected to on docker run.
 	// Ideally all these network-specific endpoint configurations must be moved under
 	// container.NetworkSettings.Networks[n.Name()]
-	if n.Name() == c.HostConfig.NetworkMode.NetworkName() ||
+	if n.Name() == "bridge" ||
 		(n.Name() == defaultNetName && c.HostConfig.NetworkMode.IsDefault()) {
 		if c.Config.MacAddress != "" {
 			mac, err := net.ParseMAC(c.Config.MacAddress)

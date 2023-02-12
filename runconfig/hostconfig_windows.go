@@ -10,7 +10,8 @@ import (
 // DefaultDaemonNetworkMode returns the default network stack the daemon should
 // use.
 func DefaultDaemonNetworkMode() container.NetworkMode {
-	return "nat"
+	// FixMe: We need way to figure out this
+	return "internal"
 }
 
 // IsPreDefinedNetwork indicates if a network is predefined by the daemon

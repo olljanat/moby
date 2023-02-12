@@ -1348,7 +1348,7 @@ func (daemon *Daemon) networkOptions(pg plugingetter.PluginGetter, activeSandbox
 		nwconfig.OptionDataDir(conf.Root),
 		nwconfig.OptionExecRoot(conf.GetExecRoot()),
 		nwconfig.OptionDefaultDriver(string(dd)),
-		nwconfig.OptionDefaultNetwork(dd.NetworkName()),
+		nwconfig.OptionDefaultNetwork("bridge"),
 		nwconfig.OptionLabels(conf.Labels),
 		nwconfig.OptionNetworkControlPlaneMTU(conf.NetworkControlPlaneMTU),
 		driverOptions(conf),

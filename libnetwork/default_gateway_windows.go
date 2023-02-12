@@ -6,7 +6,7 @@ import (
 	"github.com/docker/docker/libnetwork/types"
 )
 
-const libnGWNetwork = "nat"
+const libnGWNetwork = "bridge"
 
 func getPlatformOption() EndpointOption {
 
