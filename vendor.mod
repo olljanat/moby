@@ -187,3 +187,5 @@ require (
 	google.golang.org/protobuf v1.28.1 // indirect
 	k8s.io/klog/v2 v2.80.1 // indirect
 )
+
+replace github.com/moby/swarmkit => github.com/olljanat/swarmkit/v2 v2.0.0-20230212154750-97d84399b2f2
