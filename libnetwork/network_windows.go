@@ -32,9 +32,12 @@ func (n *network) startResolver() {
 	if n.networkType == "ics" {
 		return
 	}
+	options := n.Info().DriverOptions()
+	if options[windows.DisableGatewayDNS] == "true" {
+		return
+	}
 	n.resolverOnce.Do(func() {
 		logrus.Debugf("Launching DNS server for network %q", n.Name())
-		options := n.Info().DriverOptions()
 		hnsid := options[windows.HNSID]
 
 		if hnsid == "" {
