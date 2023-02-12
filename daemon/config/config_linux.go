@@ -38,7 +38,6 @@ type BridgeConfig struct {
 
 	// Fields below here are platform specific.
 	DefaultIP                   net.IP `json:"ip,omitempty"`
-	IP                          string `json:"bip,omitempty"`
 	DefaultGatewayIPv4          net.IP `json:"default-gateway,omitempty"`
 	DefaultGatewayIPv6          net.IP `json:"default-gateway-v6,omitempty"`
 	InterContainerCommunication bool   `json:"icc,omitempty"`
@@ -46,8 +45,6 @@ type BridgeConfig struct {
 	EnableIPv6          bool   `json:"ipv6,omitempty"`
 	EnableIPTables      bool   `json:"iptables,omitempty"`
 	EnableIP6Tables     bool   `json:"ip6tables,omitempty"`
-	EnableIPForward     bool   `json:"ip-forward,omitempty"`
-	EnableIPMasq        bool   `json:"ip-masq,omitempty"`
 	EnableUserlandProxy bool   `json:"userland-proxy,omitempty"`
 	UserlandProxyPath   string `json:"userland-proxy-path,omitempty"`
 	FixedCIDRv6         string `json:"fixed-cidr-v6,omitempty"`

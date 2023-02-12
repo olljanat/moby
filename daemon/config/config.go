@@ -116,8 +116,11 @@ type LogConfig struct {
 // commonBridgeConfig stores all the platform-common bridge driver specific
 // configuration.
 type commonBridgeConfig struct {
-	Iface     string `json:"bridge,omitempty"`
-	FixedCIDR string `json:"fixed-cidr,omitempty"`
+	EnableIPForward bool   `json:"ip-forward,omitempty"`
+	EnableIPMasq    bool   `json:"ip-masq,omitempty"`
+	FixedCIDR       string `json:"fixed-cidr,omitempty"`
+	Iface           string `json:"bridge,omitempty"`
+	IP              string `json:"bip,omitempty"`
 }
 
 // NetworkConfig stores the daemon-wide networking configurations

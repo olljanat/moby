@@ -16,6 +16,10 @@ func installConfigFlags(conf *config.Config, flags *pflag.FlagSet) error {
 	flags.StringVar(&conf.BridgeConfig.FixedCIDR, "fixed-cidr", "", "IPv4 subnet for fixed IPs")
 	flags.StringVarP(&conf.BridgeConfig.Iface, "bridge", "b", "", "Attach containers to a virtual switch")
 	flags.StringVarP(&conf.SocketGroup, "group", "G", "", "Users or groups that can access the named pipe")
+
+	// TODO: Can be only used with --ip-masq=false
+	flags.BoolVar(&conf.BridgeConfig.EnableIPForward, "ip-forward", false, "Enable IP forwarding to bridge and Ethernet adapters")
+
 	return nil
 }
 
