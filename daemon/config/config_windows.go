@@ -18,6 +18,8 @@ const (
 // configuration.
 type BridgeConfig struct {
 	commonBridgeConfig
+
+	SwarmCompatibleBridge bool `json:"swarm-compatible-bridge,omitempty"`
 }
 
 // Config defines the configuration of a docker daemon.

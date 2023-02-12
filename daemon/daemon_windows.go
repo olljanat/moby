@@ -182,7 +182,18 @@ func verifyPlatformContainerSettings(daemon *Daemon, hostConfig *containertypes.
 }
 
 // verifyDaemonSettings performs validation of daemon config struct
-func verifyDaemonSettings(config *config.Config) error {
+func verifyDaemonSettings(conf *config.Config) error {
+	// Check for mutually incompatible config options
+	if conf.BridgeConfig.EnableIPForward && conf.BridgeConfig.EnableIPMasq {
+		return fmt.Errorf("You specified --ip-forward=true with --ip-masq=true. Please set --ip-forward or --ip-masq to false")
+	}
+	if conf.BridgeConfig.EnableIPForward && !conf.SwarmCompatibleBridge {
+		return fmt.Errorf("You specified --ip-forward=true with --swarm-compatible-bridge=false. Please set --ip-forward to false or --swarm-compatible-bridge to true")
+	}
+	if !conf.BridgeConfig.EnableIPMasq && !conf.SwarmCompatibleBridge {
+		return fmt.Errorf("You specified --ip-masq=false with --swarm-compatible-bridge=false. Please set --ip-masq or --swarm-compatible-bridge to true")
+	}
+
 	return nil
 }
 

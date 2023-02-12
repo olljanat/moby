@@ -3,6 +3,7 @@ package container // import "github.com/docker/docker/api/types/container"
 // IsBridge indicates whether container uses the bridge network stack
 // in windows it is given the name NAT
 func (n NetworkMode) IsBridge() bool {
+	// FixMe:
 	return n == "nat"
 }
 
