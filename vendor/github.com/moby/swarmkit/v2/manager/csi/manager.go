@@ -196,6 +196,9 @@ func (vm *Manager) init(ctx context.Context) {
 		}
 	})
 
+	if len(nodes) == 0 {
+		log.G(ctx).Error("Swarmkit, Didn't found any nodes")
+	}
 	for _, node := range nodes {
 		vm.handleNode(node)
 	}
@@ -411,7 +414,9 @@ func (vm *Manager) handleNode(n *api.Node) {
 			// TODO(dperny): log something
 			continue
 		}
+		log.L.Debugf("Swarmkit handleNode, plugin: %s , swarmID: %s , CSI ID %s", info.PluginName, n.ID, info.NodeID)
 		p.AddNode(n.ID, info.NodeID)
+		// log.L.Debugf("Swarmkit handleNode, plugin: %s , GetNode result %s", info.PluginName, p.GetNode(n.ID))
 	}
 }
 
@@ -423,6 +428,7 @@ func (vm *Manager) handleNodeRemove(nodeID string) {
 	// we don't need to worry about lazy-loading here, because if don't have
 	// the plugin loaded, there's no need to call remove.
 	for _, plugin := range vm.plugins {
+		log.L.Debugf("Swarmkit handleNodeRemove, nodeID %s", nodeID)
 		plugin.RemoveNode(nodeID)
 	}
 }

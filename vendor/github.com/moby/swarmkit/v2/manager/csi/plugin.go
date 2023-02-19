@@ -6,10 +6,13 @@ import (
 	"fmt"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/docker/docker/pkg/plugingetter"
 	"github.com/moby/swarmkit/v2/api"
+	"github.com/moby/swarmkit/v2/log"
 )
 
 // Plugin is the interface for a CSI controller plugin.
@@ -25,6 +28,7 @@ type Plugin interface {
 	PublishVolume(context.Context, *api.Volume, string) (map[string]string, error)
 	UnpublishVolume(context.Context, *api.Volume, string) error
 	AddNode(swarmID, csiID string)
+	GetNode(swarmID string) string
 	RemoveNode(swarmID string)
 }
 
@@ -203,8 +207,14 @@ func (p *plugin) PublishVolume(ctx context.Context, v *api.Volume, nodeID string
 	if !p.publisher {
 		return nil, nil
 	}
+	csiNodeID := p.swarmToCSI[nodeID]
+	if csiNodeID == "" {
+		log.L.Errorf("CSI node ID is not yet registered. Plugin: %s , Swarm node ID: %s", p.name, nodeID)
+		// return nil, fmt.Errorf("CSI node ID is not yet registered")
+		return nil, status.Error(codes.FailedPrecondition, "CSI node ID is not yet registered")
+	}
 
-	req := p.makeControllerPublishVolumeRequest(v, nodeID)
+	req := p.makeControllerPublishVolumeRequest(v, csiNodeID)
 	c, err := p.Client(ctx)
 	if err != nil {
 		return nil, err
@@ -242,12 +252,21 @@ func (p *plugin) UnpublishVolume(ctx context.Context, v *api.Volume, nodeID stri
 //
 // The CSI node ID is provided by the node as part of the NodeDescription.
 func (p *plugin) AddNode(swarmID, csiID string) {
+	// log.L.Debugf("Swarmkit AddNode, swarmID %s", swarmID)
+
 	p.swarmToCSI[swarmID] = csiID
 	p.csiToSwarm[csiID] = swarmID
 }
 
+func (p *plugin) GetNode(swarmID string) string {
+	ID := p.swarmToCSI[swarmID]
+	return ID
+}
+
 // RemoveNode removes a node from this plugin's node mappings.
 func (p *plugin) RemoveNode(swarmID string) {
+	log.L.Debugf("Swarmkit RemoveNode, swarmID %s", swarmID)
+
 	csiID := p.swarmToCSI[swarmID]
 	delete(p.swarmToCSI, swarmID)
 	delete(p.csiToSwarm, csiID)
@@ -301,7 +320,7 @@ func (p *plugin) makeSecrets(v *api.Volume) map[string]string {
 	return secrets
 }
 
-func (p *plugin) makeControllerPublishVolumeRequest(v *api.Volume, nodeID string) *csi.ControllerPublishVolumeRequest {
+func (p *plugin) makeControllerPublishVolumeRequest(v *api.Volume, csiNodeID string) *csi.ControllerPublishVolumeRequest {
 	if v.VolumeInfo == nil {
 		return nil
 	}
@@ -313,7 +332,7 @@ func (p *plugin) makeControllerPublishVolumeRequest(v *api.Volume, nodeID string
 	}
 	return &csi.ControllerPublishVolumeRequest{
 		VolumeId:         v.VolumeInfo.VolumeID,
-		NodeId:           p.swarmToCSI[nodeID],
+		NodeId:           csiNodeID,
 		Secrets:          secrets,
 		VolumeCapability: capability,
 		VolumeContext:    v.VolumeInfo.VolumeContext,
