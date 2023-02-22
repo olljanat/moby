@@ -147,7 +147,9 @@ func (r *Supervisor) Restart(ctx context.Context, tx store.Tx, cluster *api.Clus
 	}
 
 	if !r.shouldRestart(ctx, &t, service) {
-		return nil
+		log.G(ctx).WithError(err).Debug("DEBUG: shouldRestart result false 2")
+		// return nil
+		return errors.New("NOT YET")
 	}
 
 	var restartTask *api.Task
@@ -306,6 +308,7 @@ func (r *Supervisor) shouldRestart(ctx context.Context, t *api.Task, service *ap
 		next = e.Next()
 
 		if e.Value.(restartedInstance).timestamp.After(lookback) {
+			log.G(ctx).WithError(err).Debugf("DEBUG: Ignoring restarted instance because it is older than lookback: %s", lookback)
 			break
 		}
 		restartInfo.restartedInstances.Remove(e)
@@ -315,6 +318,7 @@ func (r *Supervisor) shouldRestart(ctx context.Context, t *api.Task, service *ap
 	// Ignore restarts that didn't happen before the task we're looking at.
 	for e2 := restartInfo.restartedInstances.Back(); e2 != nil; e2 = e2.Prev() {
 		if e2.Value.(restartedInstance).timestamp.Before(timestamp) {
+			log.G(ctx).WithError(err).Debugf("DEBUG: Ignoring restarted instance because it did not happend before we started looking: %s", lookback)
 			break
 		}
 		numRestarts--
@@ -366,7 +370,8 @@ func (r *Supervisor) UpdatableTasksInSlot(ctx context.Context, slot orchestrator
 	}
 
 	if !r.shouldRestart(ctx, slot[newestIndex], service) {
-		return orchestrator.Slot{slot[newestIndex]}
+		log.G(ctx).Debug("DEBUG: shouldRestart result false 1")
+		// return orchestrator.Slot{slot[newestIndex]}
 	}
 	return nil
 }

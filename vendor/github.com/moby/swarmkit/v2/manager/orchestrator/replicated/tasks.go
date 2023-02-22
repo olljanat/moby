@@ -45,7 +45,7 @@ func (r *Orchestrator) handleTaskEvent(ctx context.Context, event events.Event) 
 }
 
 func (r *Orchestrator) tickTasks(ctx context.Context) {
-	if len(r.restartTasks) > 0 {
+	// if len(r.restartTasks) > 0 {
 		err := r.store.Batch(func(batch *store.Batch) error {
 			for taskID := range r.restartTasks {
 				err := batch.Update(func(tx store.Tx) error {
@@ -80,7 +80,7 @@ func (r *Orchestrator) tickTasks(ctx context.Context) {
 		}
 
 		r.restartTasks = make(map[string]struct{})
-	}
+	// }
 }
 
 func (r *Orchestrator) restartTasksByNodeID(ctx context.Context, nodeID string) {
