@@ -164,6 +164,9 @@ func (nDB *NetworkDB) sendTableEvent(event TableEvent_Type, nid string, tname st
 		}
 		break
 	}
+
+	// FixMe: Issue is here. We are looking for node specific networks but this is not one of those,
+	// because only config is node specific
 	thisNodeNetworks, ok := nDB.networks[nDB.config.NodeID]
 	if ok {
 		// The network may have been removed
