@@ -577,6 +577,7 @@ func (ep *Endpoint) addDriverInfoToCluster() error {
 	}
 
 	for _, te := range ep.joinInfo.driverTableEntries {
+		log.G(context.TODO()).Warnf("FixMe: addDriverInfoToCluster, calling CreateEntry")
 		if err := agent.networkDB.CreateEntry(te.tableName, n.ID(), te.key, te.value); err != nil {
 			return err
 		}
@@ -683,6 +684,7 @@ func (ep *Endpoint) addServiceInfoToCluster(sb *Sandbox) error {
 	}
 
 	if agent != nil {
+		log.G(context.TODO()).Warnf("FixMe: addServiceInfoToCluster agent is not nil, calling CreateEntry")
 		if err := agent.networkDB.CreateEntry(libnetworkEPTable, n.ID(), ep.ID(), buf); err != nil {
 			log.G(context.TODO()).Warnf("addServiceInfoToCluster NetworkDB CreateEntry failed for %s %s err:%s", ep.id, n.id, err)
 			return err

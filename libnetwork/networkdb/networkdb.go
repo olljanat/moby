@@ -363,9 +363,12 @@ func (nDB *NetworkDB) getEntry(tname, nid, key string) (*entry, error) {
 // entry for the same tuple for which there is already an existing
 // entry unless the current entry is deleting state.
 func (nDB *NetworkDB) CreateEntry(tname, nid, key string, value []byte) error {
+	log.G(context.TODO()).Warnf("FixMe: libnetwork, CreateEntry called")
+
 	nDB.Lock()
 	oldEntry, err := nDB.getEntry(tname, nid, key)
 	if err == nil || (oldEntry != nil && !oldEntry.deleting) {
+		log.G(context.TODO()).Warnf("FixMe: libnetwork, CreateEntry oldEntry logic created error")
 		nDB.Unlock()
 		return fmt.Errorf("cannot create entry in table %s with network id %s and key %s, already exists", tname, nid, key)
 	}
@@ -376,13 +379,17 @@ func (nDB *NetworkDB) CreateEntry(tname, nid, key string, value []byte) error {
 		value: value,
 	}
 
+	log.G(context.TODO()).Warnf("FixMe: libnetwork, CreateEntry, createOrUpdateEntry called")
 	nDB.createOrUpdateEntry(nid, tname, key, entry)
 	nDB.Unlock()
 
+	log.G(context.TODO()).Warnf("FixMe: libnetwork, CreateEntry, sendTableEvent called")
 	if err := nDB.sendTableEvent(TableEventTypeCreate, nid, tname, key, entry); err != nil {
+		log.G(context.TODO()).Warnf("FixMe: libnetwork, CreateEntry, sendTableEvent created error")
 		return fmt.Errorf("cannot send create event for table %s, %v", tname, err)
 	}
 
+	log.G(context.TODO()).Warnf("FixMe: libnetwork, CreateEntry, finished")
 	return nil
 }
 
@@ -391,6 +398,7 @@ func (nDB *NetworkDB) CreateEntry(tname, nid, key string, value []byte) error {
 // propagates this event to the cluster. It is an error to update a
 // non-existent entry.
 func (nDB *NetworkDB) UpdateEntry(tname, nid, key string, value []byte) error {
+	log.G(context.TODO()).Warnf("FixMe: libnetwork, UpdateEntry called")
 	nDB.Lock()
 	if _, err := nDB.getEntry(tname, nid, key); err != nil {
 		nDB.Unlock()
@@ -440,6 +448,7 @@ func (nDB *NetworkDB) GetTableByNetwork(tname, nid string) map[string]*TableElem
 // table, key) tuple and if the NetworkDB is part of the cluster
 // propagates this event to the cluster.
 func (nDB *NetworkDB) DeleteEntry(tname, nid, key string) error {
+	log.G(context.TODO()).Warnf("FixMe: libnetwork, DeleteEntry called")
 	nDB.Lock()
 	oldEntry, err := nDB.getEntry(tname, nid, key)
 	if err != nil || oldEntry == nil || oldEntry.deleting {
