@@ -1,9 +1,11 @@
 package networkdb
 
 import (
+	"context"
 	"errors"
 	"time"
 
+	"github.com/containerd/containerd/log"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/serf/serf"
 )
@@ -139,6 +141,7 @@ func (nDB *NetworkDB) sendTableEvent(event TableEvent_Type, nid string, tname st
 
 	raw, err := encodeMessage(MessageTypeTableEvent, &tEvent)
 	if err != nil {
+		log.G(context.TODO()).Warnf("FixMe: sendTableEvent, message encoding failed")
 		return err
 	}
 
@@ -149,6 +152,7 @@ func (nDB *NetworkDB) sendTableEvent(event TableEvent_Type, nid string, tname st
 		// The network may have been removed
 		network, networkOk := thisNodeNetworks[nid]
 		if !networkOk {
+			log.G(context.TODO()).Warnf("FixMe: sendTableEvent, network NOT ok")
 			nDB.RUnlock()
 			return nil
 		}
@@ -159,6 +163,7 @@ func (nDB *NetworkDB) sendTableEvent(event TableEvent_Type, nid string, tname st
 
 	// The network may have been removed
 	if broadcastQ == nil {
+		log.G(context.TODO()).Warnf("FixMe: sendTableEvent, broadcastQ is nil")
 		return nil
 	}
 
@@ -168,5 +173,7 @@ func (nDB *NetworkDB) sendTableEvent(event TableEvent_Type, nid string, tname st
 		tname: tname,
 		key:   key,
 	})
+
+	log.G(context.TODO()).Warnf("FixMe: sendTableEvent, finished")
 	return nil
 }
