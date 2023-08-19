@@ -262,6 +262,7 @@ func (d *driver) peerInitOp(nid string) error {
 }
 
 func (d *driver) peerAdd(nid, eid string, peerIP net.IP, peerIPMask net.IPMask, peerMac net.HardwareAddr, vtep net.IP, l2Miss, l3Miss, localPeer bool) {
+	log.G(context.TODO()).Warnf("FixMe: libnetwork, peerDB, peerAdd called")
 	d.peerOpMu.Lock()
 	defer d.peerOpMu.Unlock()
 	err := d.peerAddOp(nid, eid, peerIP, peerIPMask, peerMac, vtep, l2Miss, l3Miss, true, localPeer)
@@ -271,6 +272,7 @@ func (d *driver) peerAdd(nid, eid string, peerIP net.IP, peerIPMask net.IPMask, 
 }
 
 func (d *driver) peerAddOp(nid, eid string, peerIP net.IP, peerIPMask net.IPMask, peerMac net.HardwareAddr, vtep net.IP, l2Miss, l3Miss, updateDB, localPeer bool) error {
+	log.G(context.TODO()).Warnf("FixMe: libnetwork, peerDB, peerAddOp called")
 	if err := validateID(nid, eid); err != nil {
 		return err
 	}
@@ -287,11 +289,13 @@ func (d *driver) peerAddOp(nid, eid string, peerIP net.IP, peerIPMask net.IPMask
 
 	// Local peers do not need any further configuration
 	if localPeer {
+		log.G(context.TODO()).Warnf("FixMe: peerAddOp detected as localPeer")
 		return nil
 	}
 
 	n := d.network(nid)
 	if n == nil {
+		log.G(context.TODO()).Warnf("FixMe: peerAddOp network is nil")
 		return nil
 	}
 
@@ -300,6 +304,7 @@ func (d *driver) peerAddOp(nid, eid string, peerIP net.IP, peerIPMask net.IPMask
 		// We are hitting this case for all the events that are arriving before that the sandbox
 		// is being created. The peer got already added into the database and the sanbox init will
 		// call the peerDbUpdateSandbox that will configure all these peers from the database
+		log.G(context.TODO()).Warnf("FixMe: peerAddOp sandbox is nil")
 		return nil
 	}
 
@@ -317,6 +322,7 @@ func (d *driver) peerAddOp(nid, eid string, peerIP net.IP, peerIPMask net.IPMask
 		return fmt.Errorf("subnet sandbox join failed for %q: %v", s.subnetIP.String(), err)
 	}
 
+	log.G(context.TODO()).Warnf("FixMe: peerAddOp, calling checkEncryption")
 	if err := d.checkEncryption(nid, vtep, false, true); err != nil {
 		log.G(context.TODO()).Warn(err)
 	}
@@ -338,6 +344,7 @@ func (d *driver) peerAddOp(nid, eid string, peerIP net.IP, peerIPMask net.IPMask
 		return fmt.Errorf("could not add fdb entry for nid:%s eid:%s into the sandbox:%v", nid, eid, err)
 	}
 
+	log.G(context.TODO()).Warnf("FixMe: peerAddOp processed")
 	return nil
 }
 
@@ -371,6 +378,7 @@ func (d *driver) peerDeleteOp(nid, eid string, peerIP net.IP, peerIPMask net.IPM
 		return nil
 	}
 
+	log.G(context.TODO()).Warnf("FixMe: peerDeleteOp, calling checkEncryption")
 	if err := d.checkEncryption(nid, vtep, localPeer, false); err != nil {
 		log.G(context.TODO()).Warn(err)
 	}

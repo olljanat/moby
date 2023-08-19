@@ -17,7 +17,9 @@ import (
 
 // Join method is invoked when a Sandbox is attached to an endpoint.
 func (d *driver) Join(nid, eid string, sboxKey string, jinfo driverapi.JoinInfo, options map[string]interface{}) error {
+	log.G(context.TODO()).Warnf("FixMe: Sandbox Join, called")
 	if err := validateID(nid, eid); err != nil {
+		log.G(context.TODO()).Warnf("FixMe: Sandbox Join, is NOT valid")
 		return err
 	}
 
@@ -54,6 +56,7 @@ func (d *driver) Join(nid, eid string, sboxKey string, jinfo driverapi.JoinInfo,
 
 	overlayIfName, containerIfName, err := createVethPair()
 	if err != nil {
+		log.G(context.TODO()).Warnf("FixMe: Sandbox Join, overlayIfName failed")
 		return err
 	}
 
@@ -70,6 +73,7 @@ func (d *driver) Join(nid, eid string, sboxKey string, jinfo driverapi.JoinInfo,
 	}
 	err = nlh.LinkSetMTU(veth, mtu)
 	if err != nil {
+		log.G(context.TODO()).Warnf("FixMe: Sandbox Join, LinkSetMTU failed")
 		return err
 	}
 
@@ -109,6 +113,7 @@ func (d *driver) Join(nid, eid string, sboxKey string, jinfo driverapi.JoinInfo,
 
 	d.peerAdd(nid, eid, ep.addr.IP, ep.addr.Mask, ep.mac, net.ParseIP(d.advertiseAddress), false, false, true)
 
+	log.G(context.TODO()).Warnf("FixMe: Sandbox Join, calling checkEncryption")
 	if err = d.checkEncryption(nid, nil, true, true); err != nil {
 		log.G(context.TODO()).Warn(err)
 	}
