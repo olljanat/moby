@@ -566,11 +566,13 @@ func (ep *Endpoint) addDriverInfoToCluster() error {
 		// return nil
 	}
 	if ep.joinInfo == nil {
+		log.G(context.TODO()).Warnf("FixMe: addDriverInfoToCluster, joinInfo is nil")
 		return nil
 	}
 
 	agent := n.getController().getAgent()
 	if agent == nil {
+		log.G(context.TODO()).Warnf("FixMe: addDriverInfoToCluster, agent is nil")
 		return nil
 	}
 
@@ -646,6 +648,8 @@ func (ep *Endpoint) addServiceInfoToCluster(sb *Sandbox) error {
 
 	var ingressPorts []*PortConfig
 	if ep.svcID != "" {
+		log.G(context.TODO()).Warnf("FixMe: addServiceInfoToCluster, svcID is not empty")
+
 		// This is a task part of a service
 		// Gossip ingress ports only in ingress network.
 		if n.ingress {
@@ -655,6 +659,8 @@ func (ep *Endpoint) addServiceInfoToCluster(sb *Sandbox) error {
 			return err
 		}
 	} else {
+		log.G(context.TODO()).Warnf("FixMe: addServiceInfoToCluster, is attach")
+
 		// This is a container simply attached to an attachable network
 		if err := c.addContainerNameResolution(n.ID(), ep.ID(), name, ep.myAliases, ep.Iface().Address().IP, "addServiceInfoToCluster"); err != nil {
 			return err
