@@ -610,7 +610,8 @@ func (ep *Endpoint) addServiceInfoToCluster(sb *Sandbox) error {
 
 	n := ep.getNetwork()
 	if !n.isClusterEligible() {
-		return nil
+		log.G(context.TODO()).Warnf("FixMe: Network is not cluster eligible")
+		// return nil
 	}
 
 	sb.service.Lock()
