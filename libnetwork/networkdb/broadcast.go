@@ -147,12 +147,29 @@ func (nDB *NetworkDB) sendTableEvent(event TableEvent_Type, nid string, tname st
 
 	var broadcastQ *memberlist.TransmitLimitedQueue
 	nDB.RLock()
+
+	retryCount := 0
+	for {
+		_, ok := nDB.networks[nDB.config.NodeID]
+		if !ok {
+			log.G(context.TODO()).Warnf("FixMe: sendTableEvent, broadcastQ is not yet ok")
+			if retryCount >= 5 {
+				log.G(context.TODO()).Warnf("FixMe: sendTableEvent, broadcastQ is STILL nil")
+				nDB.RUnlock()
+				return nil
+			}
+			retryCount++
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		break
+	}
 	thisNodeNetworks, ok := nDB.networks[nDB.config.NodeID]
 	if ok {
 		// The network may have been removed
 		network, networkOk := thisNodeNetworks[nid]
 		if !networkOk {
-			log.G(context.TODO()).Warnf("FixMe: sendTableEvent, network NOT ok")
+			log.G(context.TODO()).Warnf("FixMe: sendTableEvent, network NOT ok, nid: %s", nid)
 			nDB.RUnlock()
 			return nil
 		}
