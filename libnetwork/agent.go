@@ -562,7 +562,8 @@ func (n *Network) leaveCluster() error {
 func (ep *Endpoint) addDriverInfoToCluster() error {
 	n := ep.getNetwork()
 	if !n.isClusterEligible() {
-		return nil
+		log.G(context.TODO()).Warnf("FixMe: addDriverInfoToCluster, Network is not cluster eligible")
+		// return nil
 	}
 	if ep.joinInfo == nil {
 		return nil
@@ -584,7 +585,8 @@ func (ep *Endpoint) addDriverInfoToCluster() error {
 func (ep *Endpoint) deleteDriverInfoFromCluster() error {
 	n := ep.getNetwork()
 	if !n.isClusterEligible() {
-		return nil
+		log.G(context.TODO()).Warnf("FixMe: deleteDriverInfoFromCluster, Network is not cluster eligible")
+		// return nil
 	}
 	if ep.joinInfo == nil {
 		return nil
@@ -610,7 +612,7 @@ func (ep *Endpoint) addServiceInfoToCluster(sb *Sandbox) error {
 
 	n := ep.getNetwork()
 	if !n.isClusterEligible() {
-		log.G(context.TODO()).Warnf("FixMe: Network is not cluster eligible")
+		log.G(context.TODO()).Warnf("FixMe: addServiceInfoToCluster, Network is not cluster eligible")
 		// return nil
 	}
 
@@ -693,7 +695,8 @@ func (ep *Endpoint) deleteServiceInfoFromCluster(sb *Sandbox, fullRemove bool, m
 
 	n := ep.getNetwork()
 	if !n.isClusterEligible() {
-		return nil
+		log.G(context.TODO()).Warnf("FixMe: deleteServiceInfoFromCluster, Network is not cluster eligible")
+		// return nil
 	}
 
 	sb.service.Lock()
@@ -782,7 +785,8 @@ func disableServiceInNetworkDB(a *agent, n *Network, ep *Endpoint) {
 
 func (n *Network) addDriverWatches() {
 	if !n.isClusterEligible() {
-		return
+		log.G(context.TODO()).Warnf("FixMe: addDriverWatches, Network is not cluster eligible")
+		// return
 	}
 
 	c := n.getController()
@@ -818,7 +822,8 @@ func (n *Network) addDriverWatches() {
 
 func (n *Network) cancelDriverWatches() {
 	if !n.isClusterEligible() {
-		return
+		log.G(context.TODO()).Warnf("FixMe: cancelDriverWatches, Network is not cluster eligible")
+		// return
 	}
 
 	agent := n.getController().getAgent()
