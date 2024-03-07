@@ -31,6 +31,7 @@ const (
 	startupTimeout          = 15 * time.Second
 	configFile              = "containerd.toml"
 	pidFile                 = "containerd.pid"
+	binaryName              = "containerd.exe"
 )
 
 type remote struct {

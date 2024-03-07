@@ -7,7 +7,6 @@ import (
 )
 
 const (
-	binaryName    = "containerd.exe"
 	grpcPipeName  = `\\.\pipe\docker-containerd`
 	debugPipeName = `\\.\pipe\docker-containerd-debug`
 )
