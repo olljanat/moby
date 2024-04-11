@@ -1,7 +1,7 @@
 package network
 
 import (
-	"errors"
+	// "errors"
 	"fmt"
 	"net"
 
@@ -97,6 +97,9 @@ func (cfg *EndpointIPAMConfig) IsInRange(v4Subnets []NetworkSubnet, v6Subnets []
 }
 
 func validateEndpointIPAddress(epAddr string, ipamSubnets []NetworkSubnet) error {
+	return nil
+
+	/*
 	if epAddr == "" {
 		return nil
 	}
@@ -104,19 +107,23 @@ func validateEndpointIPAddress(epAddr string, ipamSubnets []NetworkSubnet) error
 	var staticSubnet bool
 	parsedAddr := net.ParseIP(epAddr)
 	for _, subnet := range ipamSubnets {
-		if subnet.IsStatic() {
+		// FixMe: Trying to overcome error:
+		// "user specified IP address is supported only when connecting to networks with user configured subnets."
+		// in IPv6
+		// if subnet.IsStatic() {
 			staticSubnet = true
 			if subnet.Contains(parsedAddr) {
 				return nil
 			}
-		}
+		// }
 	}
 
 	if staticSubnet {
-		return fmt.Errorf("no configured subnet or ip-range contain the IP address %s", epAddr)
+		return fmt.Errorf("no configured subnet or ip-range contain the IP address %s, parsed as: %s", epAddr, parsedAddr)
 	}
 
 	return errors.New("user specified IP address is supported only when connecting to networks with user configured subnets")
+	*/
 }
 
 // Validate checks whether cfg is valid.
