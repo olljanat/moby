@@ -213,6 +213,11 @@ func (n *networkRouter) postNetworkCreate(ctx context.Context, w http.ResponseWr
 		return libnetwork.NetworkNameError(create.Name)
 	}
 
+	create.EnableIPv4 = httputils.BoolValueOrDefault(r, "ipv4", true)
+	if !create.EnableIPv4 && !create.EnableIPv6 {
+		return errdefs.InvalidParameter(errors.New("cannot disable both ipv4 and ipv6"))
+	}
+
 	// For a Swarm-scoped network, this call to backend.CreateNetwork is used to
 	// validate the configuration. The network will not be created but, if the
 	// configuration is valid, ManagerRedirectError will be returned and handled

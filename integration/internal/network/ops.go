@@ -12,6 +12,13 @@ func WithDriver(driver string) func(*types.NetworkCreate) {
 	}
 }
 
+// WithoutIPv4 Disables IPv4 on the network
+func WithoutIPv4() func(*types.NetworkCreate) {
+	return func(n *types.NetworkCreate) {
+		n.EnableIPv4 = false
+	}
+}
+
 // WithIPv6 Enables IPv6 on the network
 func WithIPv6() func(*types.NetworkCreate) {
 	return func(n *types.NetworkCreate) {

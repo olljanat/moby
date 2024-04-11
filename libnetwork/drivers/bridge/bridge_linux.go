@@ -60,6 +60,7 @@ type configuration struct {
 type networkConfiguration struct {
 	ID                   string
 	BridgeName           string
+	EnableIPv4           bool
 	EnableIPv6           bool
 	EnableIPMasquerade   bool
 	EnableICC            bool
@@ -219,7 +220,7 @@ func (c *networkConfiguration) Validate() error {
 	}
 
 	// If bridge v4 subnet is specified
-	if c.AddressIPv4 != nil {
+	if c.EnableIPv4 && c.AddressIPv4 != nil {
 		// If default gw is specified, it must be part of bridge subnet
 		if c.DefaultGatewayIPv4 != nil {
 			if !c.AddressIPv4.Contains(c.DefaultGatewayIPv4) {
@@ -280,6 +281,10 @@ func (c *networkConfiguration) fromLabels(labels map[string]string) error {
 			c.BridgeName = value
 		case netlabel.DriverMTU:
 			if c.Mtu, err = strconv.Atoi(value); err != nil {
+				return parseErr(label, value, err.Error())
+			}
+		case netlabel.EnableIPv4:
+			if c.EnableIPv4, err = strconv.ParseBool(value); err != nil {
 				return parseErr(label, value, err.Error())
 			}
 		case netlabel.EnableIPv6:
@@ -533,16 +538,16 @@ func (c *networkConfiguration) processIPAM(id string, ipamV4Data, ipamV6Data []d
 		return types.ForbiddenErrorf("bridge driver doesn't support multiple subnets")
 	}
 
-	if len(ipamV4Data) == 0 {
-		return types.InvalidParameterErrorf("bridge network %s requires ipv4 configuration", id)
-	}
+	if len(ipamV4Data) > 0 {
+		c.AddressIPv4 = ipamV4Data[0].Pool
 
-	if ipamV4Data[0].Gateway != nil {
-		c.AddressIPv4 = types.GetIPNetCopy(ipamV4Data[0].Gateway)
-	}
+		if ipamV4Data[0].Gateway != nil {
+			c.AddressIPv4 = types.GetIPNetCopy(ipamV4Data[0].Gateway)
+		}
 
-	if gw, ok := ipamV4Data[0].AuxAddresses[DefaultGatewayV4AuxKey]; ok {
-		c.DefaultGatewayIPv4 = gw.IP
+		if gw, ok := ipamV4Data[0].AuxAddresses[DefaultGatewayV4AuxKey]; ok {
+			c.DefaultGatewayIPv4 = gw.IP
+		}
 	}
 
 	if len(ipamV6Data) > 0 {
@@ -632,7 +637,7 @@ func (d *driver) DecodeTableEntry(tablename string, key string, value []byte) (s
 
 // Create a new network using bridge plugin
 func (d *driver) CreateNetwork(id string, option map[string]interface{}, nInfo driverapi.NetworkInfo, ipV4Data, ipV6Data []driverapi.IPAMData) error {
-	if len(ipV4Data) == 0 || ipV4Data[0].Pool.String() == "0.0.0.0/0" {
+	if len(ipV4Data) > 0 && ipV4Data[0].Pool.String() == "0.0.0.0/0" {
 		return types.InvalidParameterErrorf("ipv4 pool is empty")
 	}
 	// Sanity checks
@@ -769,7 +774,9 @@ func (d *driver) createNetwork(config *networkConfiguration) (err error) {
 	}
 
 	// Even if a bridge exists try to setup IPv4.
-	bridgeSetup.queueStep(setupBridgeIPv4)
+	if config.EnableIPv4 {
+		bridgeSetup.queueStep(setupBridgeIPv4)
+	}
 
 	enableIPv6Forwarding := config.EnableIPv6 && d.config.EnableIPForwarding
 
@@ -786,7 +793,7 @@ func (d *driver) createNetwork(config *networkConfiguration) (err error) {
 
 		// Ensure the bridge has the expected IPv4 addresses in the case of a previously
 		// existing device.
-		{bridgeAlreadyExists && !config.InhibitIPv4, setupVerifyAndReconcileIPv4},
+		{bridgeAlreadyExists && !config.InhibitIPv4 && config.EnableIPv4, setupVerifyAndReconcileIPv4},
 
 		// Enable IPv6 Forwarding
 		{enableIPv6Forwarding, setupIPv6Forwarding},
@@ -795,7 +802,7 @@ func (d *driver) createNetwork(config *networkConfiguration) (err error) {
 		{!d.config.EnableUserlandProxy, setupLoopbackAddressesRouting},
 
 		// Setup IPTables.
-		{d.config.EnableIPTables, network.setupIP4Tables},
+		{d.config.EnableIPTables && config.EnableIPv4, network.setupIP4Tables},
 
 		// Setup IP6Tables.
 		{config.EnableIPv6 && d.config.EnableIP6Tables, network.setupIP6Tables},
@@ -1067,7 +1074,11 @@ func (d *driver) CreateEndpoint(nid, eid string, ifInfo driverapi.InterfaceInfo,
 
 	// Set the sbox's MAC if not provided. If specified, use the one configured by user, otherwise generate one based on IP.
 	if endpoint.macAddress == nil {
-		endpoint.macAddress = electMacAddress(epConfig, endpoint.addr.IP)
+		var electWithIP net.IP
+		if endpoint.addr != nil {
+			electWithIP = endpoint.addr.IP
+		}
+		endpoint.macAddress = electMacAddress(epConfig, electWithIP)
 		if err = ifInfo.SetMacAddress(endpoint.macAddress); err != nil {
 			return err
 		}
@@ -1532,6 +1543,9 @@ func parseConnectivityOptions(cOptions map[string]interface{}) (*connectivityCon
 func electMacAddress(epConfig *endpointConfiguration, ip net.IP) net.HardwareAddr {
 	if epConfig != nil && epConfig.MacAddress != nil {
 		return epConfig.MacAddress
+	}
+	if ip == nil {
+		netutils.GenerateRandomMAC()
 	}
 	return netutils.GenerateMACFromIP(ip)
 }

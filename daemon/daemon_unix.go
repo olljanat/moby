@@ -918,6 +918,7 @@ func driverOptions(config *config.Config) nwconfig.Option {
 	})
 }
 
+// FixMe: Handle IPv4 disabled in here
 func initBridgeDriver(controller *libnetwork.Controller, cfg config.BridgeConfig) error {
 	bridgeName := bridge.DefaultBridgeName
 	if cfg.Iface != "" {
@@ -1050,6 +1051,7 @@ func initBridgeDriver(controller *libnetwork.Controller, cfg config.BridgeConfig
 	}
 	// Initialize default network on "bridge" with the same name
 	_, err = controller.NewNetwork("bridge", network.NetworkBridge, "",
+		libnetwork.NetworkOptionEnableIPv4(true),
 		libnetwork.NetworkOptionEnableIPv6(cfg.EnableIPv6),
 		libnetwork.NetworkOptionDriverOpts(netOption),
 		libnetwork.NetworkOptionIpam("default", "", v4Conf, v6Conf, nil),

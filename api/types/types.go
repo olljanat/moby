@@ -430,6 +430,7 @@ type NetworkResource struct {
 	Created    time.Time                      // Created is the time the network created
 	Scope      string                         // Scope describes the level at which the network exists (e.g. `swarm` for cluster-wide or `local` for machine level)
 	Driver     string                         // Driver is the Driver name used to create the network (e.g. `bridge`, `overlay`)
+	EnableIPv4 bool                           // EnableIPv4 represents whether to enable IPv4
 	EnableIPv6 bool                           // EnableIPv6 represents whether to enable IPv6
 	IPAM       network.IPAM                   // IPAM is the network's IP Address Management
 	Internal   bool                           // Internal represents if the network is used internal only
@@ -460,6 +461,7 @@ type NetworkCreate struct {
 	CheckDuplicate bool `json:",omitempty"`
 	Driver         string
 	Scope          string
+	EnableIPv4     bool
 	EnableIPv6     bool
 	IPAM           *network.IPAM
 	Internal       bool

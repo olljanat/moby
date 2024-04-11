@@ -18,7 +18,7 @@ import (
 // CreateNetwork the network for the specified driver type
 func (d *driver) CreateNetwork(nid string, option map[string]interface{}, nInfo driverapi.NetworkInfo, ipV4Data, ipV6Data []driverapi.IPAMData) error {
 	// reject a null v4 network
-	if len(ipV4Data) == 0 || ipV4Data[0].Pool.String() == "0.0.0.0/0" {
+	if len(ipV4Data) > 0 && ipV4Data[0].Pool.String() == "0.0.0.0/0" {
 		return fmt.Errorf("ipv4 pool is empty")
 	}
 	// parse and validate the config and bind to networkConfiguration

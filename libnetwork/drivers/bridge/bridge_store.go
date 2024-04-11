@@ -121,6 +121,7 @@ func (ncfg *networkConfiguration) MarshalJSON() ([]byte, error) {
 	nMap := make(map[string]interface{})
 	nMap["ID"] = ncfg.ID
 	nMap["BridgeName"] = ncfg.BridgeName
+	nMap["EnableIPv4"] = ncfg.EnableIPv4
 	nMap["EnableIPv6"] = ncfg.EnableIPv6
 	nMap["EnableIPMasquerade"] = ncfg.EnableIPMasquerade
 	nMap["EnableICC"] = ncfg.EnableICC

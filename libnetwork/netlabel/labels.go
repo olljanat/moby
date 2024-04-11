@@ -26,6 +26,9 @@ const (
 	// DNSServers A list of DNS servers associated with the endpoint
 	DNSServers = Prefix + ".endpoint.dnsservers"
 
+	//EnableIPv4 constant represents enabling IPV4 at network level
+	EnableIPv4 = Prefix + ".enable_ipv4"
+
 	// EnableIPv6 constant represents enabling IPV6 at network level
 	EnableIPv6 = Prefix + ".enable_ipv6"
 
