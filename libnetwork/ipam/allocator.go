@@ -356,6 +356,9 @@ func getAddress(base netip.Prefix, bitmask *bitmap.Bitmap, prefAddress netip.Add
 	} else if prefAddress != (netip.Addr{}) {
 		ordinal = netiputil.HostID(prefAddress, uint(base.Bits()))
 		err = bitmask.Set(ordinal)
+
+		// FixMe: it fails in here!!!
+		log.G(context.TODO()).Debugf("getAddress, bitmask.Set(ordinal), ordinal: %v , error: %v", ordinal, err)
 	} else {
 		start, end := netiputil.SubnetRange(base, ipr)
 		ordinal, err = bitmask.SetAnyInRange(start, end, serial)
