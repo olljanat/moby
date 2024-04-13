@@ -74,14 +74,16 @@ func (p *Provider) validatePluginDriver(driver *api.Driver, pluginType string) e
 		return status.Errorf(codes.InvalidArgument, "plugin %s not supported", driver.Name)
 	}
 
-	plug, err := p.pg.Get(driver.Name, pluginType, plugingetter.Lookup)
+	_, err := p.pg.Get(driver.Name, pluginType, plugingetter.Lookup)
 	if err != nil {
 		return status.Errorf(codes.InvalidArgument, "error during lookup of plugin %s", driver.Name)
 	}
 
-	if plug.IsV1() {
-		return status.Errorf(codes.InvalidArgument, "legacy plugin %s of type %s is not supported in swarm mode", driver.Name, pluginType)
-	}
+	/*
+		if plug.IsV1() {
+			return status.Errorf(codes.InvalidArgument, "legacy plugin %s of type %s is not supported in swarm mode", driver.Name, pluginType)
+		}
+	*/
 
 	return nil
 }
