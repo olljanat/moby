@@ -99,8 +99,8 @@ jobs:
           docker cp "${{ env.TEST_CTN_NAME }}`:c`:\gopath\src\github.com\docker\docker\bundles\docker.exe" ${{ env.BIN_OUT }}\
           docker cp "${{ env.TEST_CTN_NAME }}`:c`:\gopath\src\github.com\docker\docker\bundles\dockerd.exe" ${{ env.BIN_OUT }}\
           docker cp "${{ env.TEST_CTN_NAME }}`:c`:\gopath\bin\gotestsum.exe" ${{ env.BIN_OUT }}\
-          docker cp "${{ env.TEST_CTN_NAME }}`:c`:\gopath\src\github.com\docker\docker\bundles\containerd.exe" ${{ env.BIN_OUT }}\
-          docker cp "${{ env.TEST_CTN_NAME }}`:c`:\gopath\src\github.com\docker\docker\bundles\containerd-shim-runhcs-v1.exe" ${{ env.BIN_OUT }}\
+          docker cp "${{ env.TEST_CTN_NAME }}`:c`:\containerd\bin\containerd.exe" ${{ env.BIN_OUT }}\
+          docker cp "${{ env.TEST_CTN_NAME }}`:c`:\containerd\bin\containerd-shim-runhcs-v1.exe" ${{ env.BIN_OUT }}\
       -
         name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -383,20 +383,11 @@ jobs:
           If ("${{ matrix.runtime }}" -eq "containerd") {
             $containerdProcesses = Get-Process -Name containerd -ErrorAction:SilentlyContinue
             If (-not $containerdProcesses) {
-                Throw "containerd process is not running"
+              Throw "containerd process is not running"
             } else {
-              $managedContainerdPathFound = $false
               foreach ($process in $containerdProcesses) {
                 $processPath = (Get-Process -Id $process.Id -FileVersionInfo).FileName
                 Write-Output "Running containerd instance binary Path: $($processPath)"
-                if ($processPath -like "${{ env.BIN_OUT }}*") {
-                  $managedContainerdPathFound = $true
-                  Write-Output "Running containerd instance path matches the expected managed process binary path"
-                  break
-                }
-              }
-              if (-not $managedContainerdPathFound) {
-                Write-Output "Running containerd instance path does not match the expected managed process binary path"
               }
             }
           }
