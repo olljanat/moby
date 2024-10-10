@@ -292,7 +292,9 @@ func (r *remote) monitorDaemon(ctx context.Context) {
 				}
 			}
 
-			os.RemoveAll(r.GRPC.Address)
+			if err := os.RemoveAll(r.GRPC.Address); err != nil {
+				r.logger.WithError(err).Error("failed to remove old gRPC address")
+			}
 			if err := r.startContainerd(); err != nil {
 				if !started {
 					r.daemonStartCh <- err
@@ -301,6 +303,11 @@ func (r *remote) monitorDaemon(ctx context.Context) {
 				r.logger.WithError(err).Error("failed restarting containerd")
 				delay = 50 * time.Millisecond
 				continue
+			} else {
+				if !started {
+					close(r.daemonStartCh) // Close only once
+					started = true
+				}
 			}
 
 			client, err = containerd.New(
@@ -327,11 +334,6 @@ func (r *remote) monitorDaemon(ctx context.Context) {
 			_, err := client.IsServing(tctx)
 			cancel()
 			if err == nil {
-				if !started {
-					close(r.daemonStartCh)
-					started = true
-				}
-
 				transientFailureCount = 0
 
 				select {

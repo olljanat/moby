@@ -93,7 +93,6 @@ func (cli *DaemonCli) initContainerd(ctx context.Context) (func(time.Duration) e
 	defer func() { system.EnableContainerdRuntime(cli.ContainerdAddr) }()
 
 	if cli.ContainerdAddr != "" {
-		// use system containerd at the given address.
 		return nil, nil
 	}
 
