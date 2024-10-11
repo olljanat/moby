@@ -12,18 +12,17 @@ import (
 	"github.com/containerd/containerd/images"
 	containerdimages "github.com/containerd/containerd/images"
 	containerdlabels "github.com/containerd/containerd/labels"
-	"github.com/containerd/containerd/platforms"
 	"github.com/containerd/containerd/remotes"
 	"github.com/containerd/containerd/remotes/docker"
 	cerrdefs "github.com/containerd/errdefs"
 	"github.com/containerd/log"
+	"github.com/containerd/platforms"
 	"github.com/distribution/reference"
 	"github.com/docker/docker/api/types/auxprogress"
 	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/api/types/registry"
 	dimages "github.com/docker/docker/daemon/images"
 	"github.com/docker/docker/errdefs"
-	"github.com/docker/docker/internal/compatcontext"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/docker/docker/pkg/streamformatter"
 	"github.com/opencontainers/go-digest"
@@ -95,7 +94,7 @@ func (i *ImageService) pushRef(ctx context.Context, targetRef reference.Named, p
 		return err
 	}
 	defer func() {
-		if err := release(compatcontext.WithoutCancel(leasedCtx)); err != nil {
+		if err := release(context.WithoutCancel(leasedCtx)); err != nil {
 			log.G(ctx).WithField("image", targetRef).WithError(err).Warn("failed to release lease created for push")
 		}
 	}()
@@ -217,16 +216,7 @@ func (i *ImageService) pushRef(ctx context.Context, targetRef reference.Named, p
 }
 
 func (i *ImageService) getPushDescriptor(ctx context.Context, img containerdimages.Image, platform *ocispec.Platform) (ocispec.Descriptor, error) {
-	// Allow to override the host platform for testing purposes.
-	hostPlatform := i.defaultPlatformOverride
-	if hostPlatform == nil {
-		hostPlatform = platforms.Default()
-	}
-
-	pm := matchAllWithPreference(hostPlatform)
-	if platform != nil {
-		pm = platforms.OnlyStrict(*platform)
-	}
+	pm := i.matchRequestedOrDefault(platforms.OnlyStrict, platform)
 
 	anyMissing := false
 
@@ -266,7 +256,7 @@ func (i *ImageService) getPushDescriptor(ctx context.Context, img containerdimag
 		return nil
 	})
 	if err != nil {
-		return ocispec.Descriptor{}, err
+		return ocispec.Descriptor{}, errdefs.System(err)
 	}
 
 	switch len(presentMatchingManifests) {
@@ -296,7 +286,7 @@ func (i *ImageService) getPushDescriptor(ctx context.Context, img containerdimag
 
 			// No specific platform requested and not all manifests are available.
 			// Select the manifest that matches the host platform the best.
-			if bestMatch != nil && hostPlatform.Match(bestMatchPlatform) {
+			if bestMatch != nil && i.hostPlatformMatcher().Match(bestMatchPlatform) {
 				return bestMatch.Target(), nil
 			}
 

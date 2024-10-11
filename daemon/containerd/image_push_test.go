@@ -1,5 +1,5 @@
 // FIXME(thaJeztah): remove once we are a module; the go:build directive prevents go from downgrading language version to go1.16:
-//go:build go1.19
+//go:build go1.21
 
 package containerd
 
@@ -7,15 +7,15 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	containerdimages "github.com/containerd/containerd/images"
 	"github.com/containerd/containerd/namespaces"
-	"github.com/containerd/containerd/platforms"
+	"github.com/containerd/platforms"
 	"github.com/docker/docker/errdefs"
 	"github.com/docker/docker/internal/testutils/specialimage"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	"golang.org/x/exp/slices"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 )
@@ -204,7 +204,7 @@ func TestImagePushIndex(t *testing.T) {
 				imgSvc.defaultPlatformOverride = platforms.Only(defaultDaemonPlatform)
 			}
 
-			idx, err := specialimage.MultiPlatform(csDir, "multiplatform:latest", tc.indexPlatforms)
+			idx, _, err := specialimage.MultiPlatform(csDir, "multiplatform:latest", tc.indexPlatforms)
 			assert.NilError(t, err)
 
 			imgs := imagesFromIndex(idx)
