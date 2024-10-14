@@ -11,6 +11,7 @@ import (
 
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/defaults"
+	"github.com/containerd/containerd/pkg/dialer"
 	"github.com/containerd/containerd/services/server/config"
 	"github.com/containerd/log"
 	"github.com/docker/docker/pkg/pidfile"
@@ -161,7 +162,7 @@ func (r *remote) startContainerd() error {
 	}
 
 	r.logger.WithField("binary", r.daemonPath).Debug("starting containerd binary")
-	cmd := exec.Command(binaryName, "--config", cfgFile)
+	cmd := exec.Command(r.daemonPath, "--config", cfgFile)
 	// redirect containerd logs to docker logs
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -278,23 +279,21 @@ func (r *remote) monitorDaemon(ctx context.Context) {
 				r.logger.WithError(err).Error("failed restarting containerd")
 				delay = 50 * time.Millisecond
 				continue
-			} else {
-				if !started {
-					close(r.daemonStartCh) // Close only once
-					started = true
-				}
+			}
+
+			gopts := []grpc.DialOption{
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				grpc.WithContextDialer(dialer.ContextDialer),
+				grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(defaults.DefaultMaxRecvMsgSize)),
+				grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(defaults.DefaultMaxSendMsgSize)),
+				grpc.WithUnaryInterceptor(grpcerrors.UnaryClientInterceptor),
+				grpc.WithStreamInterceptor(grpcerrors.StreamClientInterceptor),
 			}
 
 			client, err = containerd.New(
 				r.GRPC.Address,
 				containerd.WithTimeout(60*time.Second),
-				containerd.WithDialOpts([]grpc.DialOption{
-					grpc.WithUnaryInterceptor(grpcerrors.UnaryClientInterceptor),
-					grpc.WithStreamInterceptor(grpcerrors.StreamClientInterceptor),
-					grpc.WithTransportCredentials(insecure.NewCredentials()),
-					grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(defaults.DefaultMaxRecvMsgSize)),
-					grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(defaults.DefaultMaxSendMsgSize)),
-				}),
+				containerd.WithDialOpts(gopts),
 			)
 			if err != nil {
 				r.logger.WithError(err).Error("failed connecting to containerd")
@@ -309,6 +308,11 @@ func (r *remote) monitorDaemon(ctx context.Context) {
 			_, err := client.IsServing(tctx)
 			cancel()
 			if err == nil {
+				if !started {
+					close(r.daemonStartCh) // Close only once
+					started = true
+				}
+
 				transientFailureCount = 0
 
 				select {
