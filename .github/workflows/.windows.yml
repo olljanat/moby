@@ -203,7 +203,7 @@ jobs:
           retention-days: 1
 
   unit-test-report:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 120 # guardrails timeout for the whole job
     if: always()
     needs:
@@ -214,6 +214,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: vendor.sum
       -
         name: Download artifacts
         uses: actions/download-artifact@v4
@@ -230,7 +231,7 @@ jobs:
           find /tmp/artifacts -type f -name '*-go-test-report.json' -exec teststat -markdown {} \+ >> $GITHUB_STEP_SUMMARY
 
   integration-test-prepare:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 120 # guardrails timeout for the whole job
     outputs:
       matrix: ${{ steps.tests.outputs.matrix }}
@@ -243,6 +244,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: vendor.sum
       -
         name: Install gotestlist
         run:
@@ -431,6 +433,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: vendor.sum
       -
         name: Test integration
         if: matrix.test == './...'
@@ -501,7 +504,7 @@ jobs:
           retention-days: 1
 
   integration-test-report:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 120 # guardrails timeout for the whole job
     continue-on-error: ${{ inputs.storage == 'snapshotter' && github.event_name != 'pull_request' }}
     if: always()
@@ -524,6 +527,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: vendor.sum
       -
         name: Download reports
         uses: actions/download-artifact@v4

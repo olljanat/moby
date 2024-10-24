@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -128,9 +129,9 @@ func TestDisableNAT(t *testing.T) {
 	}
 }
 
-// Check that a container on one network can reach a service in a container on
-// another network, via a mapped port on the host.
-func TestPortMappedHairpin(t *testing.T) {
+// Check that a container on one network can reach a TCP service in a container
+// on another network, via a mapped port on the host.
+func TestPortMappedHairpinTCP(t *testing.T) {
 	skip.If(t, testEnv.IsRootless)
 
 	ctx := setupTest(t)
@@ -172,6 +173,56 @@ func TestPortMappedHairpin(t *testing.T) {
 	)
 	defer c.ContainerRemove(ctx, res.ContainerID, containertypes.RemoveOptions{Force: true})
 	assert.Check(t, is.Contains(res.Stderr.String(), "404 Not Found"))
+}
+
+// Check that a container on one network can reach a UDP service in a container
+// on another network, via a mapped port on the host.
+// Regression test for https://github.com/moby/libnetwork/issues/1729.
+func TestPortMappedHairpinUDP(t *testing.T) {
+	skip.If(t, testEnv.IsRootless)
+
+	ctx := setupTest(t)
+	d := daemon.New(t)
+	d.StartWithBusybox(ctx, t)
+	defer d.Stop(t)
+	c := d.NewClientT(t)
+	defer c.Close()
+
+	// Find an address on the test host.
+	conn, err := net.Dial("tcp4", "hub.docker.com:80")
+	assert.NilError(t, err)
+	hostAddr := conn.LocalAddr().(*net.TCPAddr).IP.String()
+	conn.Close()
+
+	const serverNetName = "servernet"
+	network.CreateNoError(ctx, t, c, serverNetName)
+	defer network.RemoveNoError(ctx, t, c, serverNetName)
+	const clientNetName = "clientnet"
+	network.CreateNoError(ctx, t, c, clientNetName)
+	defer network.RemoveNoError(ctx, t, c, clientNetName)
+
+	serverId := container.Run(ctx, t, c,
+		container.WithNetworkMode(serverNetName),
+		container.WithExposedPorts("54/udp"),
+		container.WithPortMap(nat.PortMap{"54/udp": {{HostIP: "0.0.0.0"}}}),
+		container.WithCmd("/bin/sh", "-c", "echo 'foobar.internal 192.168.155.23' | dnsd -c - -p 54"),
+	)
+	defer c.ContainerRemove(ctx, serverId, containertypes.RemoveOptions{Force: true})
+
+	inspect := container.Inspect(ctx, t, c, serverId)
+	hostPort := inspect.NetworkSettings.Ports["54/udp"][0].HostPort
+
+	// nslookup gets an answer quickly from the dns server, but then tries to
+	// query another DNS server (for some unknown reasons) and times out. Hence,
+	// we need >5s to execute this test.
+	clientCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	res := container.RunAttach(clientCtx, t, c,
+		container.WithNetworkMode(clientNetName),
+		container.WithCmd("nslookup", "foobar.internal", net.JoinHostPort(hostAddr, hostPort)),
+		container.WithAutoRemove,
+	)
+	assert.Check(t, is.Contains(res.Stdout.String(), "192.168.155.23"))
 }
 
 // Check that a container on an IPv4-only network can have a port mapping
@@ -408,6 +459,94 @@ func TestAccessPublishedPortFromRemoteHost(t *testing.T) {
 	}
 }
 
+func TestAccessPublishedPortFromCtr(t *testing.T) {
+	// This test makes changes to the host's "/proc/sys/net/bridge/bridge-nf-call-iptables",
+	// which would have no effect on rootlesskit's netns.
+	skip.If(t, testEnv.IsRootless, "rootlesskit has its own netns")
+
+	testcases := []struct {
+		name            string
+		daemonOpts      []string
+		disableBrNfCall bool
+	}{
+		{
+			name: "with-proxy",
+		},
+		{
+			name:       "no-proxy",
+			daemonOpts: []string{"--userland-proxy=false"},
+		},
+		{
+			// Before starting the daemon, disable bridge-nf-call-iptables. It should
+			// be enabled by the daemon because, without docker-proxy, it's needed to
+			// DNAT packets crossing the bridge between containers.
+			// Regression test for https://github.com/moby/moby/issues/48664
+			name:            "no-proxy no-brNfCall",
+			daemonOpts:      []string{"--userland-proxy=false"},
+			disableBrNfCall: true,
+		},
+	}
+
+	// Find an address on the test host.
+	hostAddr := func() string {
+		conn, err := net.Dial("tcp4", "hub.docker.com:80")
+		assert.NilError(t, err)
+		defer conn.Close()
+		return conn.LocalAddr().(*net.TCPAddr).IP.String()
+	}()
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := setupTest(t)
+
+			if tc.disableBrNfCall {
+				// Only run this test if br_netfilter is loaded, and enabled for IPv4.
+				const procFile = "/proc/sys/net/bridge/bridge-nf-call-iptables"
+				val, err := os.ReadFile(procFile)
+				if err != nil {
+					t.Skipf("Cannot read %s, br_netfilter not loaded? (%s)", procFile, err)
+				}
+				if val[0] != '1' {
+					t.Skipf("bridge-nf-call-iptables=%v", val[0])
+				}
+				err = os.WriteFile(procFile, []byte{'0', '\n'}, 0o644)
+				assert.NilError(t, err)
+				defer os.WriteFile(procFile, []byte{'1', '\n'}, 0o644)
+			}
+
+			d := daemon.New(t)
+			d.StartWithBusybox(ctx, t, tc.daemonOpts...)
+			defer d.Stop(t)
+			c := d.NewClientT(t)
+			defer c.Close()
+
+			const netName = "tappfcnet"
+			network.CreateNoError(ctx, t, c, netName)
+			defer network.RemoveNoError(ctx, t, c, netName)
+
+			serverId := container.Run(ctx, t, c,
+				container.WithNetworkMode(netName),
+				container.WithExposedPorts("80"),
+				container.WithPortMap(nat.PortMap{"80": {{HostIP: "0.0.0.0"}}}),
+				container.WithCmd("httpd", "-f"),
+			)
+			defer c.ContainerRemove(ctx, serverId, containertypes.RemoveOptions{Force: true})
+
+			inspect := container.Inspect(ctx, t, c, serverId)
+			hostPort := inspect.NetworkSettings.Ports["80/tcp"][0].HostPort
+
+			clientCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			defer cancel()
+			res := container.RunAttach(clientCtx, t, c,
+				container.WithNetworkMode(netName),
+				container.WithCmd("wget", "http://"+net.JoinHostPort(hostAddr, hostPort)),
+			)
+			defer c.ContainerRemove(ctx, res.ContainerID, containertypes.RemoveOptions{Force: true})
+			assert.Check(t, is.Contains(res.Stderr.String(), "404 Not Found"))
+		})
+	}
+}
+
 // TestRestartUserlandProxyUnder2MSL checks that a container can be restarted
 // while previous connections to the proxy are still in TIME_WAIT state.
 func TestRestartUserlandProxyUnder2MSL(t *testing.T) {
@@ -459,4 +598,152 @@ func TestRestartUserlandProxyUnder2MSL(t *testing.T) {
 	// make another TCP connection either, that's out of scope. Hence, we don't
 	// need to check anything after this call.
 	container.Run(ctx, t, c, ctrOpts...)
+}
+
+// Test direct routing from remote hosts (setting up a route to a container
+// network on a remote host, and addressing containers directly), for
+// combinations of:
+// - Filter FORWARD default policy: ACCEPT/DROP - shouldn't affect behaviour
+// - Gateway mode: nat/routed
+// For each combination, test:
+// - ping
+// - http access to an open (mapped) container port
+// - http access to an unmapped container port
+func TestDirectRoutingOpenPorts(t *testing.T) {
+	skip.If(t, testEnv.IsRootless())
+	ctx := setupTest(t)
+
+	d := daemon.New(t)
+	d.StartWithBusybox(ctx, t)
+	t.Cleanup(func() { d.Stop(t) })
+
+	c := d.NewClientT(t)
+	t.Cleanup(func() { c.Close() })
+
+	// Simulate the remote host.
+
+	l3 := networking.NewL3Segment(t, "test-routed-open-ports",
+		netip.MustParsePrefix("192.168.124.1/24"),
+		netip.MustParsePrefix("fdc0:36dc:a4dd::1/64"))
+	t.Cleanup(func() { l3.Destroy(t) })
+
+	// "docker" is the host where dockerd is running.
+	l3.AddHost(t, "docker", networking.CurrentNetns, "eth-test",
+		netip.MustParsePrefix("192.168.124.2/24"),
+		netip.MustParsePrefix("fdc0:36dc:a4dd::2/64"))
+	// "remote" simulates the remote host.
+	l3.AddHost(t, "remote", "test-remote-host", "eth0",
+		netip.MustParsePrefix("192.168.124.3/24"),
+		netip.MustParsePrefix("fdc0:36dc:a4dd::3/64"))
+	// Add default routes to the "docker" Host from the "remote" Host.
+	l3.Hosts["remote"].Run(t, "ip", "route", "add", "default", "via", "192.168.124.2")
+	l3.Hosts["remote"].Run(t, "ip", "-6", "route", "add", "default", "via", "fdc0:36dc:a4dd::2")
+
+	type ctrDesc struct {
+		id   string
+		ipv4 string
+		ipv6 string
+	}
+
+	// Create a network and run a container on it.
+	// Run http servers on ports 80 and 81, but only map/open port 80.
+	createNet := func(gwMode string) ctrDesc {
+		netName := "test-" + gwMode
+		network.CreateNoError(ctx, t, c, netName,
+			network.WithDriver("bridge"),
+			network.WithIPv6(),
+			network.WithOption(bridge.BridgeName, "br-"+gwMode),
+			network.WithOption(bridge.IPv4GatewayMode, gwMode),
+			network.WithOption(bridge.IPv6GatewayMode, gwMode),
+		)
+		t.Cleanup(func() {
+			network.RemoveNoError(ctx, t, c, netName)
+		})
+
+		ctrId := container.Run(ctx, t, c,
+			container.WithNetworkMode(netName),
+			container.WithName("ctr-"+gwMode),
+			container.WithExposedPorts("80/tcp"),
+			container.WithPortMap(nat.PortMap{"80/tcp": {}}),
+		)
+		t.Cleanup(func() {
+			c.ContainerRemove(ctx, ctrId, containertypes.RemoveOptions{Force: true})
+		})
+
+		container.ExecT(ctx, t, c, ctrId, []string{"httpd", "-p", "80"})
+		container.ExecT(ctx, t, c, ctrId, []string{"httpd", "-p", "81"})
+
+		insp := container.Inspect(ctx, t, c, ctrId)
+		return ctrDesc{
+			id:   ctrId,
+			ipv4: insp.NetworkSettings.Networks[netName].IPAddress,
+			ipv6: insp.NetworkSettings.Networks[netName].GlobalIPv6Address,
+		}
+	}
+
+	const (
+		httpSuccess = "404 Not Found"
+		httpFail    = "Connection timed out"
+		pingSuccess = 0
+		pingFail    = 1
+	)
+
+	networks := map[string]ctrDesc{
+		"nat":    createNet("nat"),
+		"routed": createNet("routed"),
+	}
+	expPingExit := map[string]int{
+		"nat":    pingFail,
+		"routed": pingSuccess,
+	}
+
+	testPing := func(t *testing.T, cmd, addr string, expExit int) {
+		t.Helper()
+		t.Parallel()
+		l3.Hosts["remote"].Do(t, func() {
+			t.Helper()
+			pingRes := icmd.RunCommand(cmd, "--numeric", "--count=1", "--timeout=3", addr)
+			assert.Check(t, pingRes.ExitCode == expExit, "%s %s -> out:%s err:%s",
+				cmd, addr, pingRes.Stdout(), pingRes.Stderr())
+		})
+	}
+	testHttp := func(t *testing.T, addr, port, expOut string) {
+		t.Helper()
+		t.Parallel()
+		l3.Hosts["remote"].Do(t, func() {
+			t.Helper()
+			u := "http://" + net.JoinHostPort(addr, port)
+			res := icmd.RunCommand("curl", "--max-time", "3", "--show-error", "--silent", u)
+			assert.Check(t, is.Contains(res.Combined(), expOut), "url:%s", u)
+		})
+	}
+
+	// Run the ping and http tests in two parallel groups, rather than waiting for
+	// ping/http timeouts separately. (The iptables filter-FORWARD policy affects the
+	// whole host, so ACCEPT/DROP tests can't be parallelized).
+	for _, fwdPolicy := range []string{"ACCEPT", "DROP"} {
+		networking.SetFilterForwardPolicies(t, fwdPolicy)
+		t.Run(fwdPolicy, func(t *testing.T) {
+			for _, gwMode := range []string{"nat", "routed"} {
+				t.Run(gwMode+"/v4/ping", func(t *testing.T) {
+					testPing(t, "ping", networks[gwMode].ipv4, expPingExit[gwMode])
+				})
+				t.Run(gwMode+"/v6/ping", func(t *testing.T) {
+					testPing(t, "ping6", networks[gwMode].ipv6, expPingExit[gwMode])
+				})
+				t.Run(gwMode+"/v4/http/80", func(t *testing.T) {
+					testHttp(t, networks[gwMode].ipv4, "80", httpSuccess)
+				})
+				t.Run(gwMode+"/v4/http/81", func(t *testing.T) {
+					testHttp(t, networks[gwMode].ipv4, "81", httpFail)
+				})
+				t.Run(gwMode+"/v6/http/80", func(t *testing.T) {
+					testHttp(t, networks[gwMode].ipv6, "80", httpSuccess)
+				})
+				t.Run(gwMode+"/v6/http/81", func(t *testing.T) {
+					testHttp(t, networks[gwMode].ipv6, "81", httpFail)
+				})
+			}
+		})
+	}
 }
