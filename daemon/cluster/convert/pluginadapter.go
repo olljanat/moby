@@ -1,6 +1,9 @@
 package convert
 
 import (
+	"net"
+	"time"
+
 	"github.com/docker/docker/pkg/plugingetter"
 	"github.com/moby/swarmkit/v2/node/plugin"
 )
@@ -18,6 +21,13 @@ var _ plugin.Getter = (*pluginGetter)(nil)
 
 type swarmPlugin struct {
 	plugingetter.CompatPlugin
+}
+
+// PluginAddr is a plugin that exposes the socket address for creating custom clients rather than the built-in `*plugins.Client`
+type PluginAddr interface {
+	Addr() net.Addr
+	Timeout() time.Duration
+	Protocol() string
 }
 
 func (p swarmPlugin) Client() plugin.Client {
