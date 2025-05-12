@@ -1,6 +1,8 @@
 package convert
 
 import (
+	"net"
+
 	"github.com/docker/docker/pkg/plugingetter"
 	"github.com/moby/swarmkit/v2/node/plugin"
 )
@@ -18,6 +20,11 @@ var _ plugin.Getter = (*pluginGetter)(nil)
 
 type swarmPlugin struct {
 	plugingetter.CompatPlugin
+}
+
+type AddrPlugin interface {
+	swarmPlugin
+	Addr() net.Addr
 }
 
 func (p swarmPlugin) Client() plugin.Client {
