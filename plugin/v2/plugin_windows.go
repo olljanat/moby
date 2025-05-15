@@ -84,18 +84,20 @@ func (p *Plugin) InitSpec(execRoot string) (*specs.Spec, error) {
 		}
 	}
 
-	if p.PluginObj.Config.Linux.AllowAllDevices {
-		s.Linux.Resources.Devices = []specs.LinuxDeviceCgroup{{Allow: true, Access: "rwm"}}
-	}
-	for _, dev := range p.PluginObj.Settings.Devices {
-		path := *dev.Path
-		d, dPermissions, err := oci.DevicesFromPath(path, path, "rwm")
-		if err != nil {
-			return nil, errors.WithStack(err)
+	/*
+		if p.PluginObj.Config.Linux.AllowAllDevices {
+			s.Linux.Resources.Devices = []specs.LinuxDeviceCgroup{{Allow: true, Access: "rwm"}}
 		}
-		s.Linux.Devices = append(s.Linux.Devices, d...)
-		s.Linux.Resources.Devices = append(s.Linux.Resources.Devices, dPermissions...)
-	}
+		for _, dev := range p.PluginObj.Settings.Devices {
+			path := *dev.Path
+			d, dPermissions, err := oci.DevicesFromPath(path, path, "rwm")
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
+			s.Linux.Devices = append(s.Linux.Devices, d...)
+			s.Linux.Resources.Devices = append(s.Linux.Resources.Devices, dPermissions...)
+		}
+	*/
 
 	envs := make([]string, 1, len(p.PluginObj.Settings.Env)+1)
 	envs[0] = "PATH=" + oci.DefaultPathEnv(runtime.GOOS)
