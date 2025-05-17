@@ -212,6 +212,7 @@ func TestCreateRegularVolume(t *testing.T) {
 	assert.Equal(t, 0, len(c.volumes))
 }
 
+// FixMe: This should NOT return error anymore
 func TestCreateSwarmVolumeNoSwarm(t *testing.T) {
 	b := &fakeVolumeBackend{}
 	c := &fakeClusterBackend{}
