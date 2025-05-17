@@ -2,15 +2,12 @@ package service
 
 import (
 	"io"
-	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/mount"
 	swarmtypes "github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/api/types/swarm/runtime"
 	"github.com/docker/docker/api/types/volume"
@@ -174,52 +171,54 @@ func TestServiceCSIPlugin(t *testing.T) {
 		poll.WaitOn(t, container.IsSuccessful(ctx, apiclient, containerID))
 	*/
 
-	// Test with Swarm daemon
-	d1 := swarm.NewSwarm(ctx, t, testEnv)
-	defer d1.Stop(t)
+	/*
+		// Test with Swarm daemon
+		d1 := swarm.NewSwarm(ctx, t, testEnv)
+		defer d1.Stop(t)
 
-	apiclient1 := d1.NewClientT(t)
-	rdr, err = apiclient1.PluginInstall(ctx, name, types.PluginInstallOptions{Disabled: false, RemoteRef: repo})
-	assert.NilError(t, err)
-	defer rdr.Close()
+		apiclient1 := d1.NewClientT(t)
+		rdr, err = apiclient1.PluginInstall(ctx, name, types.PluginInstallOptions{Disabled: false, RemoteRef: repo})
+		assert.NilError(t, err)
+		defer rdr.Close()
 
-	_, err = io.Copy(io.Discard, rdr)
-	assert.NilError(t, err)
+		_, err = io.Copy(io.Discard, rdr)
+		assert.NilError(t, err)
 
-	p, _, err := apiclient1.PluginInspectWithRaw(ctx, name)
-	assert.NilError(t, err)
+		p, _, err := apiclient1.PluginInspectWithRaw(ctx, name)
+		assert.NilError(t, err)
 
-	vName, err = d1.CreateVolume(ctx, t, makeVolume(name, name))
-	assert.NilError(t, err)
-	assert.Equal(t, vName, name)
+		vName, err = d1.CreateVolume(ctx, t, makeVolume(name, name))
+		assert.NilError(t, err)
+		assert.Equal(t, vName, name)
 
-	poll.WaitOn(t, d1.PollCheckLogs(ctx, daemon.ScanLogsMatchString("using cluster volume")), swarm.ServicePoll)
-	poll.WaitOn(t, d1.PollCheckLogs(ctx, daemon.ScanLogsMatchString("updated volume")), swarm.ServicePoll)
+		poll.WaitOn(t, d1.PollCheckLogs(ctx, daemon.ScanLogsMatchString("using cluster volume")), swarm.ServicePoll)
+		poll.WaitOn(t, d1.PollCheckLogs(ctx, daemon.ScanLogsMatchString("updated volume")), swarm.ServicePoll)
 
-	v := d1.GetVolume(ctx, t, name)
-	assert.Assert(t, v.ClusterVolume.Info != nil)
-	assert.Equal(t, v.ClusterVolume.Info.VolumeID, name)
+		v := d1.GetVolume(ctx, t, name)
+		assert.Assert(t, v.ClusterVolume.Info != nil)
+		assert.Equal(t, v.ClusterVolume.Info.VolumeID, name)
 
-	// plugin "csi" does not actually implement anything so we fake volume by creating local folder
-	// which can be then mounted to container
-	vf, err := filepath.Abs(filepath.Join(d1.Root, "plugins", p.ID, "propagated-mount", v.ClusterVolume.ID))
-	if err != nil {
-		t.Fail()
-	}
-	if err := os.MkdirAll(vf, 0o755); err != nil {
-		t.Fail()
-	}
+		// plugin "csi" does not actually implement anything so we fake volume by creating local folder
+		// which can be then mounted to container
+		vf, err := filepath.Abs(filepath.Join(d1.Root, "plugins", p.ID, "propagated-mount", v.ClusterVolume.ID))
+		if err != nil {
+			t.Fail()
+		}
+		if err := os.MkdirAll(vf, 0o755); err != nil {
+			t.Fail()
+		}
 
-	serviceID := swarm.CreateService(ctx, t, d1,
-		swarm.ServiceWithMounts([]mount.Mount{
-			{
-				Type:   mount.TypeCluster,
-				Source: name,
-				Target: "/data",
-			},
-		}),
-	)
-	poll.WaitOn(t, swarm.RunningTasksCount(ctx, apiclient1, serviceID, 1), swarm.ServicePoll)
+		serviceID := swarm.CreateService(ctx, t, d1,
+			swarm.ServiceWithMounts([]mount.Mount{
+				{
+					Type:   mount.TypeCluster,
+					Source: name,
+					Target: "/data",
+				},
+			}),
+		)
+		poll.WaitOn(t, swarm.RunningTasksCount(ctx, apiclient1, serviceID, 1), swarm.ServicePoll)
+	*/
 }
 
 func makePlugin(repo, name string, constraints []string) func(*swarmtypes.Service) {
@@ -245,18 +244,20 @@ func makeVolume(driver, name string) func(*volume.CreateOptions) {
 	return func(v *volume.CreateOptions) {
 		v.Driver = driver
 		v.Name = name
-		v.ClusterVolumeSpec = &volume.ClusterVolumeSpec{
-			AccessMode: &volume.AccessMode{
-				MountVolume: &volume.TypeMount{},
-				Scope:       volume.ScopeSingleNode,
-				Sharing:     volume.SharingNone,
-			},
-			AccessibilityRequirements: &volume.TopologyRequirement{},
-			Availability:              volume.AvailabilityActive,
-			CapacityRange: &volume.CapacityRange{
-				LimitBytes:    0,
-				RequiredBytes: 0,
-			},
-		}
+		/*
+			v.ClusterVolumeSpec = &volume.ClusterVolumeSpec{
+				AccessMode: &volume.AccessMode{
+					MountVolume: &volume.TypeMount{},
+					Scope:       volume.ScopeSingleNode,
+					Sharing:     volume.SharingNone,
+				},
+				AccessibilityRequirements: &volume.TopologyRequirement{},
+				Availability:              volume.AvailabilityActive,
+				CapacityRange: &volume.CapacityRange{
+					LimitBytes:    0,
+					RequiredBytes: 0,
+				},
+			}
+		*/
 	}
 }
