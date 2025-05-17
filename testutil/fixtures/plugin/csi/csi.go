@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/docker/docker/api/types/volume"
+	"github.com/docker/go-plugins-helpers/volume"
 	volumeplugin "github.com/docker/go-plugins-helpers/volume"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi"
@@ -47,7 +47,6 @@ func (d *driverServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnp
 
 // Implement classic volume plugin interfaces
 func (d *driverServer) Create(req *volumeplugin.CreateRequest) error {
-	// d.d.Create(req.Name, req.Options)
 	ctx := context.Background()
 	_, err := d.CreateVolume(ctx, &csi.CreateVolumeRequest{
 		Name:       req.Name,
@@ -84,32 +83,31 @@ func (d *driverServer) List() (*volumeplugin.ListResponse, error) {
 }
 func (d *driverServer) Get(r *volumeplugin.GetRequest) (*volumeplugin.GetResponse, error) {
 	return &volumeplugin.GetResponse{
-		Volume: &volume.Volume{
+		Volume: &volumeplugin.Volume{
 			Name: r.Name,
 		},
 	}, nil
 }
 func (d *driverServer) Remove(r *volumeplugin.RemoveRequest) error {
-	/*
-		d.mu.Lock()
-		defer d.mu.Unlock()
-
-		_, exists := d.volumes[r.Name]
-		if !exists {
-			return fmt.Errorf("volume %s not found", r.Name)
-		}
-
-		secretFile := filepath.Join(baseDir, r.Name)
-		if err := os.Remove(secretFile); err != nil {
-			return fmt.Errorf("failed to remove secret %s: %v", secretFile, err)
-		}
-
-		delete(d.volumes, r.Name)
-		log.Infof("Removed volume %s", r.Name)
-	*/
 	ctx := context.Background()
-	_, err := d.DeleteVolume(ctx, &csi.DeleteVolumeRequest{})
+	_, err := d.DeleteVolume(ctx, &csi.DeleteVolumeRequest{
+		VolumeId: r.Name,
+	})
 	return err
+}
+func (d *driverServer) Path(r *volumeplugin.PathRequest) (*volumeplugin.PathResponse, error) {
+	return &volumeplugin.PathResponse{}, nil
+}
+func (d *driverServer) Mount(r *volumeplugin.MountRequest) (*volumeplugin.MountResponse, error) {
+	return &volume.MountResponse{}, nil
+}
+func (d *driverServer) Unmount(r *volumeplugin.UnmountRequest) error {
+	return nil
+}
+func (d *driverServer) Capabilities() *volume.CapabilitiesResponse {
+	return &volume.CapabilitiesResponse{
+		Capabilities: volume.Capability{Scope: "local"},
+	}
 }
 
 func main() {
