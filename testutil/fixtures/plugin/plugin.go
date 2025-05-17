@@ -168,6 +168,7 @@ func makePluginBundle(inPath string, opts ...CreateOpt) (io.ReadCloser, error) {
 			Types: []types.PluginInterfaceType{
 				{Capability: "csicontroller", Prefix: "docker", Version: "1.0"},
 				{Capability: "csinode", Prefix: "docker", Version: "1.0"},
+				{Capability: "volumedriver", Prefix: "docker", Version: "1.0"},
 			},
 		}
 		p.Entrypoint = []string{"/csi"}
