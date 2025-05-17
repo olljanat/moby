@@ -140,10 +140,11 @@ func TestServiceCSIPlugin(t *testing.T) {
 	err := plugin.CreateInRegistry(ctx, repo, nil, plugin.WithCSI())
 	assert.NilError(t, err)
 
-	d1 := swarm.NewSwarm(ctx, t, testEnv)
-	defer d1.Stop(t)
-
-	apiclient := d1.NewClientT(t)
+	// Test with standalone
+	d := daemon.New(t)
+	defer d.Stop(t)
+	d.StartWithBusybox(ctx, t)
+	apiclient := d.NewClientT(t)
 	rdr, err := apiclient.PluginInstall(ctx, name, types.PluginInstallOptions{Disabled: false, RemoteRef: repo})
 	assert.NilError(t, err)
 	defer rdr.Close()
@@ -151,10 +152,44 @@ func TestServiceCSIPlugin(t *testing.T) {
 	_, err = io.Copy(io.Discard, rdr)
 	assert.NilError(t, err)
 
-	p, _, err := apiclient.PluginInspectWithRaw(ctx, name)
+	_, _, err = apiclient.PluginInspectWithRaw(ctx, name)
+	// p, _, err := apiclient.PluginInspectWithRaw(ctx, name)
 	assert.NilError(t, err)
 
-	vName, err := d1.CreateVolume(ctx, t, makeVolume(name, name))
+	vName, err := d.CreateVolume(ctx, t, makeVolume(name, name))
+	assert.NilError(t, err)
+	assert.Equal(t, vName, name)
+
+	/*
+		pluginMount := mount.Mount{
+			Type:   mount.TypeBind,
+			Source: tmpDir1.Path(),
+			Target: "/volume-dest",
+			BindOptions: &mount.BindOptions{
+				Propagation: mount.PropagationShared,
+			},
+		}
+		pluginMountCmd := []string{"mount", "--bind", "/volume-dest/mnt1", "/volume-dest/mnt1"}
+		containerID := container.Run(ctx, t, apiclient, container.WithPrivileged(true), container.WithMount(pluginMount), container.WithCmd(pluginMountCmd...))
+		poll.WaitOn(t, container.IsSuccessful(ctx, apiclient, containerID))
+	*/
+
+	// Test with Swarm daemon
+	d1 := swarm.NewSwarm(ctx, t, testEnv)
+	defer d1.Stop(t)
+
+	apiclient1 := d1.NewClientT(t)
+	rdr, err = apiclient1.PluginInstall(ctx, name, types.PluginInstallOptions{Disabled: false, RemoteRef: repo})
+	assert.NilError(t, err)
+	defer rdr.Close()
+
+	_, err = io.Copy(io.Discard, rdr)
+	assert.NilError(t, err)
+
+	p, _, err := apiclient1.PluginInspectWithRaw(ctx, name)
+	assert.NilError(t, err)
+
+	vName, err = d1.CreateVolume(ctx, t, makeVolume(name, name))
 	assert.NilError(t, err)
 	assert.Equal(t, vName, name)
 
@@ -184,7 +219,7 @@ func TestServiceCSIPlugin(t *testing.T) {
 			},
 		}),
 	)
-	poll.WaitOn(t, swarm.RunningTasksCount(ctx, apiclient, serviceID, 1), swarm.ServicePoll)
+	poll.WaitOn(t, swarm.RunningTasksCount(ctx, apiclient1, serviceID, 1), swarm.ServicePoll)
 }
 
 func makePlugin(repo, name string, constraints []string) func(*swarmtypes.Service) {
