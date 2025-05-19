@@ -48,13 +48,58 @@ func (d *driverServer) ControllerPublishVolume(ctx context.Context, req *csi.Con
 func (d *driverServer) ControllerUnpublishVolume(ctx context.Context, req *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
 	return &csi.ControllerUnpublishVolumeResponse{}, nil
 }
+func (d *driverServer) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
+	return &csi.ValidateVolumeCapabilitiesResponse{}, nil
+}
+func (d *driverServer) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
+	return &csi.ListVolumesResponse{}, nil
+}
+func (d *driverServer) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
+	return &csi.GetCapacityResponse{}, nil
+}
+func (d *driverServer) ControllerGetCapabilities(ctx context.Context, req *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
+	return &csi.ControllerGetCapabilitiesResponse{}, nil
+}
+func (d *driverServer) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
+	return &csi.CreateSnapshotResponse{}, nil
+}
+func (d *driverServer) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
+	return &csi.DeleteSnapshotResponse{}, nil
+}
+func (d *driverServer) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsRequest) (*csi.ListSnapshotsResponse, error) {
+	return &csi.ListSnapshotsResponse{}, nil
+}
+func (d *driverServer) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
+	return &csi.ControllerExpandVolumeResponse{}, nil
+}
+func (d *driverServer) ControllerGetVolume(ctx context.Context, req *csi.ControllerGetVolumeRequest) (*csi.ControllerGetVolumeResponse, error) {
+	return &csi.ControllerGetVolumeResponse{}, nil
+}
 
 // Required by RegisterNodeServer
+func (d *driverServer) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
+	return &csi.NodeGetCapabilitiesResponse{}, nil
+}
+func (d *driverServer) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
+	return &csi.NodeGetInfoResponse{}, nil
+}
+func (d *driverServer) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
+	return &csi.NodeGetVolumeStatsResponse{}, nil
+}
+func (d *driverServer) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
+	return &csi.NodeExpandVolumeResponse{}, nil
+}
 func (d *driverServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 func (d *driverServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
 	return &csi.NodeUnpublishVolumeResponse{}, nil
+}
+func (d *driverServer) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
+	return &csi.NodeStageVolumeResponse{}, nil
+}
+func (d *driverServer) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolumeRequest) (*csi.NodeUnstageVolumeResponse, error) {
+	return &csi.NodeUnstageVolumeResponse{}, nil
 }
 
 func main() {
