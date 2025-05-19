@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -29,9 +31,21 @@ func (d *driverServer) Probe(ctx context.Context, req *csi.ProbeRequest) (*csi.P
 // Required by RegisterControllerServer
 func (d *driverServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	path := filepath.Join("/data/published", req.Name)
-	if err := os.MkdirAll(path, 0o755); err != nil {
+	err2 := os.MkdirAll(path, 0o755)
+	/*; err != nil {
 		return nil, err
+	}*/
+
+	file, err := os.Create("/jotain.log")
+	if err != nil {
+		log.Fatal(err)
 	}
+	defer file.Close()
+	_, err = file.WriteString(fmt.Sprintf("CreateVolume , file path: %v , folder create error: %v\n", path, err2))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	return &csi.CreateVolumeResponse{}, nil
 
 }
