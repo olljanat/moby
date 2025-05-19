@@ -110,7 +110,7 @@ func main() {
 	if err := os.MkdirAll(p, 0o755); err != nil {
 		panic(err)
 	}
-	l, err := net.Listen("unix", filepath.Join(p, "csi.sock"))
+	l, err := net.Listen("unix", filepath.Join(p, "csii.sock"))
 	if err != nil {
 		panic(err)
 	}
