@@ -2,9 +2,7 @@ package service
 
 import (
 	"io"
-	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -164,16 +162,6 @@ func TestServiceCSIPlugin(t *testing.T) {
 	v := d1.GetVolume(ctx, t, name)
 	assert.Assert(t, v.ClusterVolume.Info != nil)
 	assert.Equal(t, v.ClusterVolume.Info.VolumeID, name)
-
-	// plugin "csi" does not actually implement anything so we fake volume by creating local folder
-	// which can be then mounted to container
-	vf, err := filepath.Abs(filepath.Join(d1.Root, "plugins", p.ID, "propagated-mount", v.ClusterVolume.ID))
-	if err != nil {
-		t.Fail()
-	}
-	if err := os.MkdirAll(vf, 0o755); err != nil {
-		t.Fail()
-	}
 
 	serviceID := swarm.CreateService(ctx, t, d1,
 		swarm.ServiceWithMounts([]mount.Mount{

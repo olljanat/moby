@@ -29,6 +29,13 @@ func (d *driverServer) Probe(ctx context.Context, req *csi.ProbeRequest) (*csi.P
 	return &csi.ProbeResponse{}, nil
 }
 func (d *driverServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
+	vf, err := filepath.Abs(filepath.Join("/data/published", req.Name))
+	if err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(vf, 0o755); err != nil {
+		return nil, err
+	}
 	return &csi.CreateVolumeResponse{}, nil
 }
 func (d *driverServer) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
