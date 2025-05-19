@@ -70,7 +70,9 @@ func (d *driverServer) ControllerGetVolume(ctx context.Context, req *csi.Control
 
 // Required by RegisterNodeServer
 func (d *driverServer) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
-	return &csi.NodeGetCapabilitiesResponse{}, nil
+	return &csi.NodeGetCapabilitiesResponse{
+		Capabilities: []*csi.NodeServiceCapability{},
+	}, nil
 }
 func (d *driverServer) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
 	return &csi.NodeGetInfoResponse{}, nil
