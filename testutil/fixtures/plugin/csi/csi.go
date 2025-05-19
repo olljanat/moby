@@ -35,7 +35,9 @@ func (d *driverServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRe
 	if err != nil {
 		return nil, err
 	}
-	return nil, fmt.Errorf("CreateVolume , path: %v , vf: %v", path, vf)
+	err = fmt.Errorf("CreateVolume , path: %v , vf: %v", path, vf)
+	fmt.Printf("ERROR: %v", err)
+	return nil, err
 	/*
 		if err := os.MkdirAll(vf, 0o755); err != nil {
 			return nil, err
