@@ -149,7 +149,7 @@ func TestServiceCSIPlugin(t *testing.T) {
 	_, err = io.Copy(io.Discard, rdr)
 	assert.NilError(t, err)
 
-	p, _, err := apiclient.PluginInspectWithRaw(ctx, name)
+	_, _, err = apiclient.PluginInspectWithRaw(ctx, name)
 	assert.NilError(t, err)
 
 	vName, err := d1.CreateVolume(ctx, t, makeVolume(name, name))
