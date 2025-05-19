@@ -29,11 +29,7 @@ func (d *driverServer) Probe(ctx context.Context, req *csi.ProbeRequest) (*csi.P
 // Required by RegisterControllerServer
 func (d *driverServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	path := filepath.Join("/data/published", req.Name)
-	vf, err := filepath.Abs(path)
-	if err != nil {
-		return nil, err
-	}
-	if err := os.MkdirAll(vf, 0o755); err != nil {
+	if err := os.MkdirAll(path, 0o755); err != nil {
 		return nil, err
 	}
 	return &csi.CreateVolumeResponse{}, nil

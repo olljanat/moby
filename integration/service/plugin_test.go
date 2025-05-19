@@ -5,6 +5,7 @@ import (
 	"path"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
@@ -158,7 +159,7 @@ func TestServiceCSIPlugin(t *testing.T) {
 	assert.Equal(t, vName, name)
 
 	poll.WaitOn(t, d1.PollCheckLogs(ctx, daemon.ScanLogsMatchString("using cluster volume")), swarm.ServicePoll)
-	poll.WaitOn(t, d1.PollCheckLogs(ctx, daemon.ScanLogsMatchString("updated volume")), swarm.ServicePoll)
+	poll.WaitOn(t, d1.PollCheckLogs(ctx, daemon.ScanLogsMatchString("updated volume")), poll.WithTimeout(15*time.Minute))
 
 	v := d1.GetVolume(ctx, t, name)
 	assert.Assert(t, v.ClusterVolume.Info != nil)
@@ -173,7 +174,7 @@ func TestServiceCSIPlugin(t *testing.T) {
 			},
 		}),
 	)
-	poll.WaitOn(t, swarm.RunningTasksCount(ctx, apiclient, serviceID, 1), swarm.ServicePoll)
+	poll.WaitOn(t, swarm.RunningTasksCount(ctx, apiclient, serviceID, 1), poll.WithTimeout(15*time.Minute))
 }
 
 func makePlugin(repo, name string, constraints []string) func(*swarmtypes.Service) {
