@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -11,12 +10,9 @@ import (
 	"google.golang.org/grpc"
 )
 
-type driverServer struct {
-	csi.UnimplementedIdentityServer
-	csi.UnimplementedControllerServer
-	csi.UnimplementedNodeServer
-}
+type driverServer struct{}
 
+// Required by RegisterIdentityServer
 func (d *driverServer) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoRequest) (*csi.GetPluginInfoResponse, error) {
 	return &csi.GetPluginInfoResponse{
 		Name:          "csi",
@@ -29,25 +25,31 @@ func (d *driverServer) GetPluginCapabilities(ctx context.Context, req *csi.GetPl
 func (d *driverServer) Probe(ctx context.Context, req *csi.ProbeRequest) (*csi.ProbeResponse, error) {
 	return &csi.ProbeResponse{}, nil
 }
+
+// Required by RegisterControllerServer
 func (d *driverServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	path := filepath.Join("/data/published", req.Name)
 	vf, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
 	}
-	err = fmt.Errorf("CreateVolume , path: %v , vf: %v", path, vf)
-	fmt.Printf("ERROR: %v", err)
-	return nil, err
-	/*
-		if err := os.MkdirAll(vf, 0o755); err != nil {
-			return nil, err
-		}
-		return &csi.CreateVolumeResponse{}, nil
-	*/
+	if err := os.MkdirAll(vf, 0o755); err != nil {
+		return nil, err
+	}
+	return &csi.CreateVolumeResponse{}, nil
+
 }
 func (d *driverServer) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
 	return &csi.DeleteVolumeResponse{}, nil
 }
+func (d *driverServer) ControllerPublishVolume(ctx context.Context, req *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
+	return &csi.ControllerPublishVolumeResponse{}, nil
+}
+func (d *driverServer) ControllerUnpublishVolume(ctx context.Context, req *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
+	return &csi.ControllerUnpublishVolumeResponse{}, nil
+}
+
+// Required by RegisterNodeServer
 func (d *driverServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
 	return &csi.NodePublishVolumeResponse{}, nil
 }
