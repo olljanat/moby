@@ -2193,3 +2193,7 @@ func (n *Network) deleteLoadBalancerSandbox() error {
 	}
 	return nil
 }
+
+func defaultIpamForNetworkType(networkType string) string {
+	return defaultipam.DriverName
+}
