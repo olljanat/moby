@@ -35,10 +35,6 @@ func deleteEpFromResolver(epName string, epIface *EndpointInterface, resolvers [
 	return nil
 }
 
-func defaultIpamForNetworkType(networkType string) string {
-	return defaultipam.DriverName
-}
-
 func (n *Network) validatedAdvertiseAddrNMsgs() (*int, error) {
 	nMsgsStr, ok := n.DriverOptions()[netlabel.AdvertiseAddrNMsgs]
 	if !ok {

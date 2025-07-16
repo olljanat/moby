@@ -18,8 +18,6 @@ import (
 	networkSettings "github.com/docker/docker/daemon/network"
 	"github.com/docker/docker/libnetwork/drivers/windows"
 	winlibnetwork "github.com/docker/docker/libnetwork/drivers/windows"
-	"github.com/docker/docker/libnetwork/ipams/defaultipam"
-	"github.com/docker/docker/libnetwork/ipams/windowsipam"
 	"github.com/docker/docker/libnetwork/netlabel"
 	"github.com/pkg/errors"
 )
@@ -270,13 +268,6 @@ func findResolver(resolvers []*Resolver, gw4, gw6 string) *Resolver {
 		}
 	}
 	return nil
-}
-
-func defaultIpamForNetworkType(networkType string) string {
-	if windows.IsBuiltinLocalDriver(networkType) {
-		return windowsipam.DefaultIPAM
-	}
-	return defaultipam.DriverName
 }
 
 func (n *Network) validatedAdvertiseAddrNMsgs() (*int, error) {
