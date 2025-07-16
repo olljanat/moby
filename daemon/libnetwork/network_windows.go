@@ -51,6 +51,9 @@ func (n *Network) startResolver() {
 	if n.networkType == "ics" {
 		return
 	}
+	if n.DriverOptions()[windows.DisableDNS] == "true" {
+		return
+	}
 	n.resolverOnce.Do(func() {
 		log.G(context.TODO()).Debugf("Launching DNS server for network %q", n.Name())
 		hnsid := n.DriverOptions()[windows.HNSID]
