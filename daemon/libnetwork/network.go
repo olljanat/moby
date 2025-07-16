@@ -377,7 +377,7 @@ func (n *Network) validateConfiguration() error {
 		// (Note that the default for enableIPv4 is 'true', ipamType has its own default,
 		// and other settings are zero valued by default.)
 		if n.ipamType != "" &&
-			n.ipamType != defaultIpamForNetworkType(n.networkType) ||
+			n.ipamType != defaultipam.DriverName ||
 			!n.enableIPv4 || n.enableIPv6 ||
 			len(n.labels) > 0 || len(n.ipamOptions) > 0 ||
 			len(n.ipamV4Config) > 0 || len(n.ipamV6Config) > 0 {
@@ -850,9 +850,6 @@ func NetworkOptionIpam(ipamDriver string, addrSpace string, ipV4 []*IpamConf, ip
 	return func(n *Network) {
 		if ipamDriver != "" {
 			n.ipamType = ipamDriver
-			if ipamDriver == defaultipam.DriverName {
-				n.ipamType = defaultIpamForNetworkType(n.Type())
-			}
 		}
 		n.ipamOptions = opts
 		n.addrSpace = addrSpace
@@ -2192,8 +2189,4 @@ func (n *Network) deleteLoadBalancerSandbox() error {
 		return fmt.Errorf("Failed to delete %s sandbox: %v", sandboxName, err)
 	}
 	return nil
-}
-
-func defaultIpamForNetworkType(networkType string) string {
-	return defaultipam.DriverName
 }

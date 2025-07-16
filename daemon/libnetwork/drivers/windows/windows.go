@@ -123,12 +123,6 @@ var builtinLocalDrivers = map[string]struct{}{
 	"ics":         {},
 }
 
-// IsBuiltinLocalDriver validates if network-type is a builtin local-scoped driver
-func IsBuiltinLocalDriver(networkType string) bool {
-	_, ok := builtinLocalDrivers[networkType]
-	return ok
-}
-
 var unadoptableNetworkTypes = map[string]struct{}{
 	// "internal" and "private" are included here to preserve the workarounds added
 	// in commits b91fd26 ("Ignore HNS networks with type Private") and 6a1a4f9 ("Fix

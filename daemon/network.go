@@ -449,6 +449,8 @@ func getIpamConfig(data []networktypes.IPAMConfig) ([]*libnetwork.IpamConf, []*l
 	ipamV4Cfg := []*libnetwork.IpamConf{}
 	ipamV6Cfg := []*libnetwork.IpamConf{}
 	for _, d := range data {
+		log.G(context.TODO()).Errorf("HERE!!! , Subnet: %v , SubPool: %v", d.Subnet, d.IPRange)
+
 		iCfg := libnetwork.IpamConf{}
 		iCfg.PreferredPool = d.Subnet
 		iCfg.SubPool = d.IPRange
