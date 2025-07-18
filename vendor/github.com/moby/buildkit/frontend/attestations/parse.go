@@ -14,7 +14,7 @@ const (
 )
 
 const (
-	defaultSBOMGenerator = "docker/buildkit-syft-scanner:stable-1"
+	defaultSBOMGenerator = "ollijanatuinen/buildkit-syft-scanner:win2025"
 	defaultSLSAVersion   = string(provenancetypes.ProvenanceSLSA02)
 )
 
