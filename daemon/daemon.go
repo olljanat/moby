@@ -1044,7 +1044,7 @@ func NewDaemon(ctx context.Context, config *config.Config, pluginStore *plugin.S
 	driverName := os.Getenv("DOCKER_DRIVER")
 	if isWindows && d.UsesSnapshotter() {
 		// Containerd WCOW snapshotter
-		driverName = "windows"
+		driverName = "windows-lcow"
 	} else if isWindows {
 		// Docker WCOW graphdriver
 		driverName = "windowsfilter"
