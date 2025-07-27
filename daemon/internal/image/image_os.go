@@ -11,6 +11,12 @@ import (
 // CheckOS checks if the given OS matches the host's platform, and
 // returns an error otherwise.
 func CheckOS(os string) error {
+
+	// FixMe: Check LCOW feature flag first
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+
 	if !strings.EqualFold(runtime.GOOS, os) {
 		return errdefs.InvalidParameter(errors.New("operating system is not supported"))
 	}
