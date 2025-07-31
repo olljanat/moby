@@ -1176,12 +1176,13 @@ func (n *Network) createEndpoint(name string, options ...EndpointOption) (*Endpo
 		return nil, err
 	}
 
+	if ep.ipamOptions == nil {
+		ep.ipamOptions = make(map[string]string)
+	}
+	ep.ipamOptions[netlabel.EndpointName] = ep.name
 	if capability.RequiresMACAddress {
 		if ep.iface.mac == nil {
 			ep.iface.mac = netutils.GenerateRandomMAC()
-		}
-		if ep.ipamOptions == nil {
-			ep.ipamOptions = make(map[string]string)
 		}
 		ep.ipamOptions[netlabel.MacAddress] = ep.iface.mac.String()
 	}

@@ -23,6 +23,9 @@ const (
 	// ExposedPorts constant represents the container's Exposed Ports
 	ExposedPorts = Prefix + ".endpoint.exposedports"
 
+	// EndpointName constant represents the container's Name
+	EndpointName = Prefix + ".endpoint.name"
+
 	// DNSServers A list of DNS servers associated with the endpoint
 	DNSServers = Prefix + ".endpoint.dnsservers"
 
