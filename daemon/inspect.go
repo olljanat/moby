@@ -27,11 +27,11 @@ func (daemon *Daemon) ContainerInspect(ctx context.Context, name string, options
 		return nil, err
 	}
 
-	ctr.Lock()
+	ctr.RLock()
 
 	base, err := daemon.getInspectData(&daemon.config().Config, ctr)
 	if err != nil {
-		ctr.Unlock()
+		ctr.RUnlock()
 		return nil, err
 	}
 
@@ -65,7 +65,7 @@ func (daemon *Daemon) ContainerInspect(ctx context.Context, name string, options
 	}
 	networkSettings.NetworkSettingsBase.Ports = ports
 
-	ctr.Unlock()
+	ctr.RUnlock()
 
 	if options.Size {
 		sizeRw, sizeRootFs, err := daemon.imageService.GetContainerLayerSize(ctx, base.ID)

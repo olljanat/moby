@@ -20,7 +20,7 @@ import (
 type State struct {
 	// This Mutex is exported by design and is used as a global lock
 	// for both the State and the Container it's embedded in.
-	sync.Mutex
+	sync.RWMutex
 	// Note that [State.Running], [State.Restarting], and [State.Paused] are
 	// not mutually exclusive.
 	//
