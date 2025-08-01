@@ -1095,36 +1095,40 @@ func (c *Controller) loadDriver(networkType string) error {
 	return nil
 }
 
-func (c *Controller) loadIPAMDriver(name string) error {
+func (c *Controller) loadIPAMDriver(name string) (*plugins.Plugin, error) {
 	var err error
 
-	log.G(context.Background()).Errorf("DEBUG: loadIPAMDriver called, looking driver: %v", name)
+	var legacyPlugin *plugins.Plugin
 	if pg := c.GetPluginGetter(); pg != nil {
-		log.G(context.Background()).Errorf("DEBUG: loadIPAMDriver Using plugin getter")
-		p, err := pg.Get(name, ipamapi.PluginEndpointType, plugingetter.Lookup)
-		log.G(context.Background()).Errorf("DEBUG: loadIPAMDriver found plugin: %v , error: %v", p, err)
+		_, err = pg.Get(name, ipamapi.PluginEndpointType, plugingetter.Lookup)
 	} else {
-		log.G(context.Background()).Errorf("DEBUG: loadIPAMDriver Using legacy driver")
-		p, err := plugins.Get(name, ipamapi.PluginEndpointType)
-		log.G(context.Background()).Errorf("DEBUG: loadIPAMDriver found plugin: %v , error: %v", p, err)
+		legacyPlugin, err = plugins.Get(name, ipamapi.PluginEndpointType)
 	}
 
 	if err != nil {
 		if errors.Is(err, plugins.ErrNotFound) {
-			return types.NotFoundErrorf("%v", err)
+			return nil, types.NotFoundErrorf("%v", err)
 		}
-		return err
+		return nil, err
 	}
 
-	return nil
+	return legacyPlugin, nil
 }
 
 func (c *Controller) getIPAMDriver(name string) (ipamapi.Ipam, *ipamapi.Capability, error) {
 	id, caps := c.ipamRegistry.IPAM(name)
 	if id == nil {
 		// Might be a plugin name. Try loading it
-		if err := c.loadIPAMDriver(name); err != nil {
+		legacyPlugin, err := c.loadIPAMDriver(name)
+		if err != nil {
 			return nil, nil, err
+		}
+		if legacyPlugin != nil {
+			caps := ipamapi.Capability{
+				RequiresMACAddress:    false,
+				RequiresRequestReplay: false,
+			}
+			return name, &caps, nil
 		}
 
 		// Now that we resolved the plugin, try again looking up the registry
