@@ -1098,10 +1098,15 @@ func (c *Controller) loadDriver(networkType string) error {
 func (c *Controller) loadIPAMDriver(name string) error {
 	var err error
 
+	log.G(context.Background()).Errorf("DEBUG: loadIPAMDriver called, looking driver: %v", name)
 	if pg := c.GetPluginGetter(); pg != nil {
-		_, err = pg.Get(name, ipamapi.PluginEndpointType, plugingetter.Lookup)
+		log.G(context.Background()).Errorf("DEBUG: loadIPAMDriver Using plugin getter")
+		p, err := pg.Get(name, ipamapi.PluginEndpointType, plugingetter.Lookup)
+		log.G(context.Background()).Errorf("DEBUG: loadIPAMDriver found plugin: %v , error: %v", p, err)
 	} else {
-		_, err = plugins.Get(name, ipamapi.PluginEndpointType)
+		log.G(context.Background()).Errorf("DEBUG: loadIPAMDriver Using legacy driver")
+		p, err := plugins.Get(name, ipamapi.PluginEndpointType)
+		log.G(context.Background()).Errorf("DEBUG: loadIPAMDriver found plugin: %v , error: %v", p, err)
 	}
 
 	if err != nil {
