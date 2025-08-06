@@ -265,7 +265,7 @@ func (daemon *Daemon) initNetworkController(daemonCfg *config.Config, activeSand
 		if !found {
 			// non-default nat networks should be re-created if missing from HNS
 			if v.Type() == "nat" && v.Name() != networktypes.NetworkNat {
-				_, _, v4Conf, v6Conf := v.IpamConfig()
+				ipamDriver, ipamOptions, v4Conf, v6Conf := v.IpamConfig()
 				netOption := map[string]string{}
 				for k, v := range v.DriverOptions() {
 					if k != winlibnetwork.NetworkName && k != winlibnetwork.HNSID {
@@ -284,7 +284,7 @@ func (daemon *Daemon) initNetworkController(daemonCfg *config.Config, activeSand
 					libnetwork.NetworkOptionGeneric(options.Generic{
 						netlabel.GenericData: netOption,
 					}),
-					libnetwork.NetworkOptionIpam("default", "", v4Conf, v6Conf, nil),
+					libnetwork.NetworkOptionIpam(ipamDriver, "", v4Conf, v6Conf, ipamOptions),
 				)
 				if err != nil {
 					log.G(context.TODO()).Errorf("Error occurred when creating network %v", err)
@@ -338,6 +338,8 @@ func (daemon *Daemon) initNetworkController(daemonCfg *config.Config, activeSand
 
 		drvOptions := make(map[string]string)
 		nid := ""
+		ipamDriver := "default"
+		var ipamOptions map[string]string
 		if n != nil {
 			nid = n.ID()
 
@@ -346,6 +348,8 @@ func (daemon *Daemon) initNetworkController(daemonCfg *config.Config, activeSand
 				continue
 			}
 			v.Name = n.Name()
+			ipamDriver, ipamOptions, _, _ = n.IpamConfig()
+
 			// This will not cause network delete from HNS as the network
 			// is not yet populated in the libnetwork windows driver
 
@@ -389,7 +393,7 @@ func (daemon *Daemon) initNetworkController(daemonCfg *config.Config, activeSand
 			libnetwork.NetworkOptionGeneric(options.Generic{
 				netlabel.GenericData: netOption,
 			}),
-			libnetwork.NetworkOptionIpam("default", "", v4Conf, v6Conf, nil),
+			libnetwork.NetworkOptionIpam(ipamDriver, "", v4Conf, v6Conf, ipamOptions),
 		)
 		if err != nil {
 			log.G(context.TODO()).Errorf("Error occurred when creating network %v", err)
