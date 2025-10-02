@@ -565,9 +565,13 @@ func (c *Controller) NewNetwork(ctx context.Context, networkType, name string, i
 		goto addToStore
 	}
 
-	_, caps, err = nw.resolveDriver(nw.networkType, true)
-	if err != nil {
-		return nil, err
+	// Support different network drivers in different nodes
+	// by skipping driver resolve when configFrom is used.
+	if nw.configFrom == "" {
+		_, caps, err = nw.resolveDriver(nw.networkType, true)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if nw.scope == scope.Local && caps.DataScope == scope.Global {
