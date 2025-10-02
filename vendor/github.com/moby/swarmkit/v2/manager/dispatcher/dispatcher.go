@@ -1330,7 +1330,7 @@ func (d *Dispatcher) Heartbeat(ctx context.Context, r *api.HeartbeatRequest) (*a
 
 	period, err := d.nodes.Heartbeat(nodeInfo.NodeID, r.SessionID)
 
-	log.G(ctx).WithField("method", "(*Dispatcher).Heartbeat").Debugf("received heartbeat from worker %v, expect next heartbeat in %v", nodeInfo, period)
+	// log.G(ctx).WithField("method", "(*Dispatcher).Heartbeat").Debugf("received heartbeat from worker %v, expect next heartbeat in %v", nodeInfo, period)
 	return &api.HeartbeatResponse{Period: period}, err
 }
 

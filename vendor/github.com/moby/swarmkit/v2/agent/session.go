@@ -189,7 +189,7 @@ func (s *session) heartbeat(ctx context.Context) error {
 		case <-heartbeat.C:
 			heartbeatCtx, cancel := context.WithTimeout(ctx, dispatcherRPCTimeout)
 			// TODO(anshul) log manager info in all logs in this function.
-			log.G(ctx).WithFields(fields).Debugf("sending heartbeat to manager %v with timeout %v", s.conn.Peer(), dispatcherRPCTimeout)
+			// log.G(ctx).WithFields(fields).Debugf("sending heartbeat to manager %v with timeout %v", s.conn.Peer(), dispatcherRPCTimeout)
 			resp, err := client.Heartbeat(heartbeatCtx, &api.HeartbeatRequest{
 				SessionID: s.sessionID,
 			})
@@ -204,7 +204,7 @@ func (s *session) heartbeat(ctx context.Context) error {
 				return err
 			}
 
-			log.G(ctx).WithFields(fields).Debugf("heartbeat successful to manager %v, next heartbeat period: %v", s.conn.Peer(), resp.Period)
+			// log.G(ctx).WithFields(fields).Debugf("heartbeat successful to manager %v, next heartbeat period: %v", s.conn.Peer(), resp.Period)
 
 			heartbeat.Reset(resp.Period)
 		case <-s.closed:
