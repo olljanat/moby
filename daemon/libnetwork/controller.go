@@ -586,7 +586,7 @@ func (c *Controller) NewNetwork(ctx context.Context, networkType, name string, i
 	if nw.configFrom != "" {
 		configNetwork, err := c.getConfigNetwork(nw.configFrom)
 		if err != nil {
-			return nil, types.NotFoundErrorf("configuration network %q does not exist", nw.configFrom)
+			return nil, types.NotFoundErrorf("configuration network %q does not exist, error: %v", nw.configFrom, err)
 		}
 		if err := configNetwork.applyConfigurationTo(nw); err != nil {
 			return nil, types.InternalErrorf("Failed to apply configuration: %v", err)

@@ -27,9 +27,11 @@ func (d *driver) CreateNetwork(ctx context.Context, id string, option map[string
 	d.Lock()
 	defer d.Unlock()
 
-	if d.network != "" {
-		return types.ForbiddenErrorf("only one instance of %q network is allowed", NetworkType)
-	}
+	/*
+		if d.network != "" {
+			return types.ForbiddenErrorf("only one instance of %q network is allowed", NetworkType)
+		}
+	*/
 
 	d.network = id
 
