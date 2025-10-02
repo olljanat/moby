@@ -6,6 +6,7 @@ import (
 	"github.com/moby/moby/v2/daemon/libnetwork/drivers/host"
 	"github.com/moby/moby/v2/daemon/libnetwork/drivers/ipvlan"
 	"github.com/moby/moby/v2/daemon/libnetwork/drivers/macvlan"
+	"github.com/moby/moby/v2/daemon/libnetwork/drivers/null"
 	"github.com/moby/moby/v2/daemon/libnetwork/drivers/overlay/ovmanager"
 	"github.com/moby/swarmkit/v2/manager/allocator/networkallocator"
 )
@@ -24,6 +25,7 @@ var localDrivers = []string{
 	host.NetworkType,
 	ipvlan.NetworkType,
 	macvlan.NetworkType,
+	null.NetworkType,
 }
 
 // PredefinedNetworks returns the list of predefined network structures
@@ -31,5 +33,6 @@ func (*Provider) PredefinedNetworks() []networkallocator.PredefinedNetworkData {
 	return []networkallocator.PredefinedNetworkData{
 		{Name: "bridge", Driver: "bridge"},
 		{Name: "host", Driver: "host"},
+		{Name: "none", Driver: "null"},
 	}
 }
