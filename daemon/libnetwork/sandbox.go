@@ -21,6 +21,10 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+const (
+	resolverIPSandbox = "127.0.0.11"
+)
+
 // SandboxOption is an option setter function type used to pass various options to
 // NewNetContainer method. The various setter functions of type SandboxOption are
 // provided by libnetwork, they look like ContainerOptionXXXX(...)

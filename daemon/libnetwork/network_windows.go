@@ -67,9 +67,13 @@ func (n *Network) startResolver() {
 
 		for _, subnet := range hnsresponse.Subnets {
 			if subnet.GatewayAddress != "" {
+				resolverIP := subnet.GatewayAddress
+				if n.networkType == "l2bridge" || n.networkType == "transparent" {
+					resolverIP = resolverIPSandbox
+				}
 				for i := 0; i < 3; i++ {
-					resolver := NewResolver(subnet.GatewayAddress, true, n)
-					log.G(context.TODO()).Debugf("Binding a resolver on network %s gateway %s", n.Name(), subnet.GatewayAddress)
+					resolver := NewResolver(resolverIP, true, n)
+					log.G(context.TODO()).Debugf("Binding a resolver on network %s to IP address %s", n.Name(), resolverIP)
 					n.dnsCompartment = hnsresponse.DNSServerCompartment
 					n.ExecFunc(resolver.SetupFunc(53))
 
