@@ -555,13 +555,10 @@ func (c *Controller) NewNetwork(ctx context.Context, networkType, name string, i
 		err  error
 	)
 
-	// Reset network types, force local scope and skip allocation and
-	// plumbing for configuration networks. Reset of the config-only
-	// network drivers is needed so that this special network is not
-	// usable by old engine versions.
+	// Force local scope and skip allocation and
+	// plumbing for configuration networks.
 	if nw.configOnly {
 		nw.scope = scope.Local
-		nw.networkType = "null"
 		goto addToStore
 	}
 
