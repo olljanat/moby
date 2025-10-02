@@ -30,13 +30,11 @@ import (
 	"github.com/moby/moby/v2/pkg/plugins"
 	"github.com/moby/pubsub"
 	"github.com/moby/sys/atomicwriter"
-	"github.com/moby/sys/mount"
 	"github.com/opencontainers/go-digest"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
 )
 
 const (
@@ -158,9 +156,12 @@ func (pm *Manager) HandleExitEvent(id string) error {
 
 	if restart {
 		pm.enable(p, c, true)
-	} else if err := recursiveUnmount(filepath.Join(pm.config.Root, id)); err != nil {
-		return errors.Wrap(err, "error cleaning up plugin mounts")
 	}
+	/*
+		 else if err := recursiveUnmount(filepath.Join(pm.config.Root, id)); err != nil {
+			return errors.Wrap(err, "error cleaning up plugin mounts")
+		}
+	*/
 	return nil
 }
 
@@ -403,9 +404,12 @@ func (pm *Manager) enable(p *v2.Plugin, c *controller, force bool) error {
 			log.G(context.TODO()).Errorf("failed to create PropagatedMount directory at %s: %v", propRoot, err)
 		}
 
-		if err := mount.MakeRShared(propRoot); err != nil {
-			return errors.Wrap(err, "error setting up propagated mount dir")
-		}
+		// FixMe: Not supported in Windows
+		/*
+			if err := mount.MakeRShared(propRoot); err != nil {
+				return errors.Wrap(err, "error setting up propagated mount dir")
+			}
+		*/
 	}
 
 	rootFS := filepath.Join(pm.config.Root, p.PluginObj.ID, rootFSFileName)
@@ -416,9 +420,12 @@ func (pm *Manager) enable(p *v2.Plugin, c *controller, force bool) error {
 	stdout, stderr := makeLoggerStreams(p.GetID())
 	if err := pm.executor.Create(p.GetID(), *spec, stdout, stderr); err != nil {
 		if p.PluginObj.Config.PropagatedMount != "" {
-			if err := mount.Unmount(propRoot); err != nil {
-				log.G(context.TODO()).WithField("plugin", p.Name()).WithError(err).Warn("Failed to unmount vplugin propagated mount root")
-			}
+			// FixMe: Not supported in Windows
+			/*
+				if err := mount.Unmount(propRoot); err != nil {
+					log.G(context.TODO()).WithField("plugin", p.Name()).WithError(err).Warn("Failed to unmount vplugin propagated mount root")
+				}
+			*/
 		}
 		return errors.WithStack(err)
 	}
@@ -506,7 +513,7 @@ const shutdownTimeout = 10 * time.Second
 func shutdownPlugin(p *v2.Plugin, ec chan bool, executor Executor) {
 	pluginID := p.GetID()
 
-	if err := executor.Signal(pluginID, unix.SIGTERM); err != nil {
+	if err := executor.Signal(pluginID, syscall.SIGTERM); err != nil {
 		log.G(context.TODO()).Errorf("Sending SIGTERM to plugin failed with error: %v", err)
 		return
 	}
@@ -519,7 +526,7 @@ func shutdownPlugin(p *v2.Plugin, ec chan bool, executor Executor) {
 		log.G(context.TODO()).Debug("Clean shutdown of plugin")
 	case <-timeout.C:
 		log.G(context.TODO()).Debug("Force shutdown plugin")
-		if err := executor.Signal(pluginID, unix.SIGKILL); err != nil {
+		if err := executor.Signal(pluginID, syscall.SIGKILL); err != nil {
 			log.G(context.TODO()).Errorf("Sending SIGKILL to plugin failed with error: %v", err)
 		}
 
@@ -561,9 +568,12 @@ func (pm *Manager) Shutdown() {
 			shutdownPlugin(p, c.exitChan, pm.executor)
 		}
 	}
-	if err := mount.RecursiveUnmount(pm.config.Root); err != nil {
-		log.G(context.TODO()).WithError(err).Warn("error cleaning up plugin mounts")
-	}
+	// FixMe: Not supported in Windows
+	/*
+		if err := mount.RecursiveUnmount(pm.config.Root); err != nil {
+			log.G(context.TODO()).WithError(err).Warn("error cleaning up plugin mounts")
+		}
+	*/
 }
 
 func (pm *Manager) upgradePlugin(p *v2.Plugin, configDigest, manifestDigest digest.Digest, blobsums []digest.Digest, tmpRootFSDir string, privileges *plugin.Privileges) (retErr error) {
@@ -578,9 +588,11 @@ func (pm *Manager) upgradePlugin(p *v2.Plugin, configDigest, manifestDigest dige
 	// Make sure nothing is mounted
 	// This could happen if the plugin was disabled with `-f` with active mounts.
 	// If there is anything in `orig` is still mounted, this should error out.
-	if err := mount.RecursiveUnmount(orig); err != nil {
-		return errdefs.System(err)
-	}
+	/*
+		if err := mount.RecursiveUnmount(orig); err != nil {
+			return errdefs.System(err)
+		}
+	*/
 
 	backup := orig + "-old"
 	if err := os.Rename(orig, backup); err != nil {
@@ -700,6 +712,8 @@ func (pm *Manager) createPlugin(name string, configDigest, manifestDigest digest
 	return p, nil
 }
 
+/*
 func recursiveUnmount(target string) error {
 	return mount.RecursiveUnmount(target)
 }
+*/

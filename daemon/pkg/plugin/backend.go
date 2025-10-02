@@ -36,7 +36,6 @@ import (
 	"github.com/moby/moby/v2/errdefs"
 	"github.com/moby/moby/v2/pkg/authorization"
 	"github.com/moby/moby/v2/pkg/pools"
-	"github.com/moby/sys/mount"
 	"github.com/opencontainers/go-digest"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -599,9 +598,12 @@ func (pm *Manager) Remove(name string, config *backend.PluginRmConfig) error {
 	id := p.GetID()
 	pluginDir := filepath.Join(pm.config.Root, id)
 
-	if err := mount.RecursiveUnmount(pluginDir); err != nil {
-		return errors.Wrap(err, "error unmounting plugin data")
-	}
+	// FixMe: Does not work in Windows, handle elsewhere
+	/*
+		if err := mount.RecursiveUnmount(pluginDir); err != nil {
+			return errors.Wrap(err, "error unmounting plugin data")
+		}
+	*/
 
 	if err := atomicRemoveAll(pluginDir); err != nil {
 		return err
