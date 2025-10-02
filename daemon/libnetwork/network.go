@@ -421,6 +421,10 @@ func (n *Network) validateConfiguration() error {
 
 // applyConfigurationTo applies network specific configurations.
 func (n *Network) applyConfigurationTo(to *Network) error {
+
+	log.G(context.TODO()).Errorf("DEBUG: applyConfigurationTo() overwriting network type %v with %v", to.networkType, n.networkType)
+	to.networkType = n.networkType
+
 	to.enableIPv4 = n.enableIPv4
 	to.enableIPv6 = n.enableIPv6
 	if len(n.labels) > 0 {
