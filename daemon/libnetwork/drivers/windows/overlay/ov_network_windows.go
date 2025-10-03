@@ -196,9 +196,15 @@ func (d *driver) DeleteNetwork(nid string) error {
 		return types.ForbiddenErrorf("could not find network with id %s", nid)
 	}
 
-	_, err := hcsshim.HNSNetworkRequest(http.MethodDelete, n.hnsID, "")
-	if err != nil {
-		return types.ForbiddenErrorf("%v", err)
+	if nid != "ingress" && n.name != "ingress" {
+		log.G(context.Background()).Infof("DEBUG: Deleting network from HNS. hnsID: %s , nid: %v , name: %v", n.hnsID, nid, n.name)
+
+		_, err := hcsshim.HNSNetworkRequest(http.MethodDelete, n.hnsID, "")
+		if err != nil {
+			return types.ForbiddenErrorf("%v", err)
+		}
+	} else {
+		log.G(context.Background()).Infof("DEBUG: Do NOT delete network from HNS. hnsID: %s , nid: %v , name: %v", n.hnsID, nid, n.name)
 	}
 
 	d.deleteNetwork(nid)

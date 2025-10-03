@@ -1236,6 +1236,12 @@ func (ep *Endpoint) releaseIPAddresses() {
 		return
 	}
 
+	/*
+		if n.Name() == "ingress" && ep.Name() == "ingress-endpoint" {
+			log.G(context.TODO()).Debugf("Do NOT release addresses for endpoint %s's interface on network %s", ep.Name(), n.Name())
+			return
+		}
+	*/
 	log.G(context.TODO()).Debugf("Releasing addresses for endpoint %s's interface on network %s", ep.Name(), n.Name())
 
 	ipam, _, err := n.getController().getIPAMDriver(n.ipamType)
