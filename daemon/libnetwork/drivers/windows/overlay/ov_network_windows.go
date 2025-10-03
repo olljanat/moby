@@ -77,7 +77,8 @@ func (d *driver) CreateNetwork(ctx context.Context, id string, option map[string
 	vnis := make([]uint32, 0, len(ipV4Data))
 
 	existingNetwork := d.network(id)
-	if existingNetwork != nil {
+	// FixMe: Check hnsowned here!
+	if existingNetwork != nil && id != "ingress" {
 		log.G(ctx).Debugf("Network preexists. Deleting %s", id)
 		err := d.DeleteNetwork(id)
 		if err != nil {
