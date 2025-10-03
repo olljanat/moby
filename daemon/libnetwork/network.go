@@ -1650,7 +1650,12 @@ func (n *Network) ipamReleaseVersion(ipVer int, ipam ipamapi.Ipam) {
 		return
 	}
 
-	log.G(context.TODO()).Debugf("releasing IPv%d pools from network %s (%s)", ipVer, n.Name(), n.ID())
+	if n.Name() != "ingress" {
+		log.G(context.TODO()).Debugf("releasing IPv%d pools from network %s (%s)", ipVer, n.Name(), n.ID())
+	} else {
+		log.G(context.TODO()).Debugf("DEBUG: do NOT release IPv%d pools from network %s (%s)", ipVer, n.Name(), n.ID())
+		return
+	}
 
 	for _, d := range *infoList {
 		if d.Gateway != nil {
