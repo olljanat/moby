@@ -324,9 +324,14 @@ func (d *driver) createNetwork(config *networkConfiguration) *hnsNetwork {
 
 // Create a new network
 func (d *driver) CreateNetwork(ctx context.Context, id string, option map[string]any, nInfo driverapi.NetworkInfo, ipV4Data, ipV6Data []driverapi.IPAMData) error {
-	if _, err := d.getNetwork(id); err == nil {
-		return types.ForbiddenErrorf("network %s exists", id)
-	}
+	// FixMe: Avoid network exists error when using config from
+	/*
+		if _, err := d.getNetwork(id); err == nil {
+
+			// return types.ForbiddenErrorf("network %s exists", id)
+			return nil
+		}
+	*/
 
 	genData, ok := option[netlabel.GenericData].(map[string]string)
 	if !ok {
