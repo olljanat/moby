@@ -318,6 +318,11 @@ func (d *driver) createHnsNetwork(n *network) error {
 
 	hnsresponse, err := hcsshim.HNSNetworkRequest(http.MethodPost, "", configuration)
 	if err != nil {
+		// Handle case where ingress was created earlier
+		if strings.Contains(err.Error(), "A network with this name already exists") {
+			return nil
+		}
+
 		return err
 	}
 
