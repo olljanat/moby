@@ -445,10 +445,10 @@ func setResourcesInSpec(c *container.Container, s *specs.Spec, isHyperV bool) {
 		}
 	}
 
+	if s.Windows.Resources == nil {
+		s.Windows.Resources = &specs.WindowsResources{}
+	}
 	if cpuMaximum != 0 || cpuShares != 0 || cpuCount != 0 {
-		if s.Windows.Resources == nil {
-			s.Windows.Resources = &specs.WindowsResources{}
-		}
 		s.Windows.Resources.CPU = &specs.WindowsCPUResources{
 			Maximum: &cpuMaximum,
 			Shares:  &cpuShares,
@@ -456,11 +456,27 @@ func setResourcesInSpec(c *container.Container, s *specs.Spec, isHyperV bool) {
 		}
 	}
 
+	// affinities := make([]specs.WindowsCPUGroupAffinity, 0, len(c.HostConfig.CpusetCpus))
+	affinities := make([]specs.WindowsCPUGroupAffinity, 0, 2)
+	//for _, affinity := range c.HostConfig.CpusetCpus {
+	affinities = append(affinities, specs.WindowsCPUGroupAffinity{
+		Mask:  1, // TODO: Get real value
+		Group: 0,
+	})
+	/*
+		affinities = append(affinities, specs.WindowsCPUGroupAffinity{
+			Mask:  2, // TODO: Get real value
+			Group: 1,
+		})
+	*/
+	// }
+	if s.Windows.Resources.CPU == nil {
+		s.Windows.Resources.CPU = &specs.WindowsCPUResources{}
+	}
+	s.Windows.Resources.CPU.Affinity = affinities
+
 	memoryLimit := uint64(c.HostConfig.Memory)
 	if memoryLimit != 0 {
-		if s.Windows.Resources == nil {
-			s.Windows.Resources = &specs.WindowsResources{}
-		}
 		s.Windows.Resources.Memory = &specs.WindowsMemoryResources{
 			Limit: &memoryLimit,
 		}
