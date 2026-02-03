@@ -67,6 +67,7 @@ const (
 	controlSocket                  = "control.sock"
 	swarmConnectTimeout            = 20 * time.Second
 	swarmRequestTimeout            = 20 * time.Second
+	swarmNetworkAttachTimeout      = 5 * time.Minute
 	stateFile                      = "docker-state.json"
 	defaultAddr                    = "tcp://0.0.0.0:2377"
 	isWindows                      = runtime.GOOS == "windows"
