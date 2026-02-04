@@ -228,7 +228,7 @@ func (c *Cluster) AttachNetwork(target string, containerID string, addresses []s
 	c.mu.Unlock()
 
 	ctx := context.TODO()
-	ctx, cancel := context.WithTimeout(ctx, swarmRequestTimeout)
+	ctx, cancel := context.WithTimeout(ctx, swarmOverlayAttachTimeout)
 	defer cancel()
 
 	taskID, err := agent.ResourceAllocator().AttachNetwork(ctx, containerID, target, addresses)
