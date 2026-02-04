@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Microsoft/hcsshim"
 	"github.com/containerd/log"
@@ -174,7 +175,16 @@ func (d *driver) CreateNetwork(ctx context.Context, id string, option map[string
 
 	d.addNetwork(n)
 
-	err := d.createHnsNetwork(n)
+	var err error
+	for i := 1; i < 6; i++ {
+		err = d.createHnsNetwork(n)
+		if err.Error() == "failed during hnsCallRawResponse: hnsCall failed in Win32: The system cannot find the file specified. (0x2)" {
+			log.G(ctx).Warnf("Failed creating %s network: %v", n.name, err)
+			time.Sleep(time.Duration(i) * time.Second)
+			continue
+		}
+		break
+	}
 
 	if err != nil {
 		d.deleteNetwork(id)
