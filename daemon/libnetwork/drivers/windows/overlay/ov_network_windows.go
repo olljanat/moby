@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Microsoft/hcsshim"
 	"github.com/containerd/log"
@@ -174,7 +175,18 @@ func (d *driver) CreateNetwork(ctx context.Context, id string, option map[string
 
 	d.addNetwork(n)
 
-	err := d.createHnsNetwork(n)
+	// Low-level HNS calls to Win32 sometimes fails because integration is partly asynchronous.
+	// Try creation of overlay networks 5 times with increasing delay.
+	var err error
+	for i := 1; i < 11; i += 2 {
+		err = d.createHnsNetwork(n)
+		if strings.Contains(err.Error(), "hnsCall failed in Win32") {
+			log.G(ctx).Warnf("Failed creating %s network: %v", n.name, err)
+			time.Sleep(time.Duration(i) * time.Second)
+			continue
+		}
+		break
+	}
 
 	if err != nil {
 		d.deleteNetwork(id)
